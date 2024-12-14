@@ -1,0 +1,16 @@
+# config file
+[default]
+title = "MOUSEY"
+
+[gfx]
+width = 1920
+height = 1080
+viewport = "fit"
+viewport_width = 1920
+viewport_height = 1080
+imgui = false
+
+[user]
+sensitivity = 0.1
+resizable = true
+fps = 60
