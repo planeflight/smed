@@ -1,24 +1,16 @@
 #ifndef SMED_EDITOR_HPP
 #define SMED_EDITOR_HPP
 
+#include <cstring>
+#include <vector>
+
 #include "omega/core/globals.hpp"
 #include "omega/events/input_manager.hpp"
 #include "omega/gfx/shape_renderer.hpp"
 #include "omega/gfx/sprite_batch.hpp"
 #include "omega/ui/font.hpp"
 #include "omega/util/types.hpp"
-
-struct GapBuffer {
-    i32 default_gap = 16;
-    char *start = nullptr;
-    char *gap_start;
-    i32 gap_size = default_gap;
-    char *end = nullptr;
-};
-
-struct Text {
-    std::list<std::string> lines;
-};
+#include "smed/gap_buffer.hpp"
 
 class Editor {
   public:
@@ -32,9 +24,10 @@ class Editor {
     void handle_input(omega::events::InputManager &input);
 
   private:
-    Text text;
+    GapBuffer text;
     omega::math::ivec2 cursor{0};
-    std::list<std::string>::iterator current_line;
+    char *current_line = nullptr;
+    u32 cursor_idx;
 };
 
 #endif // SMED_EDITOR_HPP

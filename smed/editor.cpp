@@ -1,27 +1,33 @@
 #include "editor.hpp"
 
+#include <cstring>
+
 #include "omega/events/event.hpp"
 #include "omega/gfx/sprite_batch.hpp"
 #include "omega/ui/font.hpp"
+#include "smed/gap_buffer.hpp"
 
-Editor::Editor() {
-    text.lines.push_back("#include <stdio.h>");
-    cursor = {text.lines.front().size() - 1, 0};
-    current_line = text.lines.begin();
+Editor::Editor() : text("#include <stdio.h>") {
+    cursor = {text.length() - 1, 0};
+    cursor_idx = text.length() - 1;
 }
 
 void Editor::render(omega::ui::Font *font, omega::gfx::SpriteBatch &batch) {
     int i = 0;
-    for (auto line = text.lines.begin(); line != text.lines.end();
-         ++line, ++i) {
-        font->render(
-            batch, *line, 20, 800 - i * 30, 30, omega::util::color::white);
-    }
     font->render(batch,
-                 std::to_string(cursor.x) + "," + std::to_string(cursor.y),
-                 1500,
-                 800,
-                 30);
+                 text.text,
+                 text.buff1_size() + text.gap_idx,
+                 20,
+                 800 - i * 30,
+                 30,
+                 omega::util::color::white);
+    font->render(batch,
+                 text.text + text.buff1_size() + text.gap_size(),
+                 text.buff2_size(),
+                 20 + (text.buff1_size() + text.gap_idx) * 30,
+                 800 - i * 30,
+                 30,
+                 omega::util::color::white);
 }
 
 void Editor::shape_render(omega::gfx::ShapeRenderer &shape) {
@@ -33,7 +39,7 @@ void Editor::shape_render(omega::gfx::ShapeRenderer &shape) {
 void Editor::save(const std::string &file) {}
 
 void Editor::handle_text(char c) {
-    current_line->push_back(c);
+    text.insert_char(c);
     cursor.x++;
 }
 
@@ -41,19 +47,19 @@ void Editor::handle_input(omega::events::InputManager &input) {
     auto &keys = input.key_manager;
     if (keys[omega::events::Key::k_backspace]) {
         // TODO: add a small input delay
-        if (current_line->size() > 0) {
-            current_line->pop_back();
-            cursor.x--;
-        } else if (cursor.y > 0) {
-            current_line--;
+        auto result = text.delete_char();
+        bool delete_line = std::get<0>(result);
+        bool delete_char = std::get<1>(result);
+        if (delete_line) {
             cursor.y--;
-            cursor.x = current_line->size() - 1;
+            cursor.x = -1; // TODO: CALCULATE NEW CURSOR.X POS
+        } else if (delete_char) {
+            cursor.x--;
         }
     }
     if (keys[omega::events::Key::k_enter]) {
-        text.lines.push_back("");
+        text.insert_char('\n');
         cursor.y++;
-        current_line++;
         cursor.x = -1;
     }
     if (keys.key_just_pressed(omega::events::Key::k_tab)) {
@@ -62,11 +68,15 @@ void Editor::handle_input(omega::events::InputManager &input) {
         }
     }
     if (keys.key_just_pressed(omega::events::Key::k_left)) {
-        cursor.x--;
-        if (cursor.x < -1) {
-            current_line--;
-            cursor.x = current_line->size() - 1;
-            cursor.y = 0;
+        if (cursor.x >= 0) {
+            cursor.x--;
+            text.move_buffer(-1);
+        }
+    }
+    if (keys.key_just_pressed(omega::events::Key::k_right)) {
+        if (text.gap_end < text.end) {
+            cursor.x++;
+            text.move_buffer(1);
         }
     }
 }
