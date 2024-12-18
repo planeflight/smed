@@ -18,22 +18,16 @@ GapBuffer::~GapBuffer() {
     delete[] text;
 }
 
-void GapBuffer::move_buffer(i32 num_bytes) {
-    if (num_bytes > 0) {
-        char *new_buff1_end = gap_start + gap_idx + num_bytes;
-        // copy the num_bytes characters after the gap to buff1
-        memmove(gap_start + gap_idx, gap_end, num_bytes);
-
-        // update the pointers
-        gap_start += num_bytes;
-        gap_end += num_bytes;
+void GapBuffer::move_buffer(bool right) {
+    print();
+    if (right) {
+        gap_start++;
+        *(gap_start + gap_idx - 1) = *gap_end;
+        gap_end++;
     } else {
-        num_bytes *= -1;
-        char *dest = gap_end - num_bytes;
-        char *src = gap_start + gap_idx - num_bytes;
-        memmove(dest, src, num_bytes);
-        gap_start = src;
-        gap_end = dest;
+        gap_start--;
+        gap_end--;
+        *gap_end = gap_start[gap_idx];
     }
     print();
 }

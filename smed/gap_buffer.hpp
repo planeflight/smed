@@ -11,10 +11,11 @@ class GapBuffer {
     GapBuffer(char *text);
     ~GapBuffer();
 
-    void move_buffer(i32 num_bytes);
+    void move_buffer(bool right);
     void insert_char(char c);
     /**
-     * Delete the character at the gap_idx, and return if there's a line change
+     * Delete the character at the gap_idx, and return if there's a line change,
+     * char_change
      * */
     std::pair<bool, bool> delete_char();
     void print();
@@ -33,6 +34,9 @@ class GapBuffer {
     }
     u32 buff2_size() const {
         return end - gap_end;
+    }
+    u32 cursor() const {
+        return buff1_size() + gap_idx;
     }
 
     char *text;
