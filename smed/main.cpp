@@ -5,6 +5,7 @@
 #include "omega/ui/font_characters.hpp"
 #include "omega/util/std.hpp"
 #include "smed/editor.hpp"
+#include "smed/font.hpp"
 
 using namespace omega;
 
@@ -16,12 +17,22 @@ struct App : public core::App {
         cam = util::create_uptr<scene::OrthographicCamera>(
             0.0f, 1600.0f, 0.0f, 900.0f, -1.0f, 1.0f);
 
+        globals->asset_manager.load_shader("font", "./res/shaders/font.glsl");
+
         globals->asset_manager.load_font("font",
                                          "./res/font/press2p.png",
                                          ui::font_characters::press_start_2p,
                                          8);
-        editor = util::create_uptr<Editor>();
         // SDL_StartTextInput();
+        Font::init();
+        font = util::create_uptr<Font>(
+            "./res/font/FiraMonoNerdFontMono-Regular.otf", 64);
+        editor = util::create_uptr<Editor>(
+            globals->asset_manager.get_shader("font"));
+    }
+
+    ~App() {
+        Font::quit();
     }
 
     void render(f32 dt) override {
@@ -29,19 +40,21 @@ struct App : public core::App {
         gfx::clear_buffer(OMEGA_GL_COLOR_BUFFER_BIT);
         cam->recalculate_view_matrix();
 
-        ui::Font *font = globals->asset_manager.get_font("font");
+        // ui::Font *font = globals->asset_manager.get_font("font");
         auto &batch = globals->sprite_batch;
         auto &shape = globals->shape_renderer;
 
         batch.set_view_projection_matrix(cam->get_view_projection_matrix());
         batch.begin_render();
-        editor->render(font, globals->sprite_batch);
+        editor->render(font.get(),
+                       cam->get_view_projection_matrix(),
+                       globals->shape_renderer);
         batch.end_render();
 
-        shape.set_view_projection_matrix(cam->get_view_projection_matrix());
-        shape.begin();
-        editor->shape_render(shape);
-        shape.end();
+        // shape.set_view_projection_matrix(cam->get_view_projection_matrix());
+        // shape.begin();
+        // editor->shape_render(shape);
+        // shape.end();
     }
 
     void update(f32 dt) override {}
@@ -110,6 +123,7 @@ struct App : public core::App {
 
     util::uptr<scene::Camera> cam = nullptr;
     util::uptr<Editor> editor = nullptr;
+    util::uptr<Font> font = nullptr;
 };
 
 int main() {

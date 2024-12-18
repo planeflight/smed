@@ -3,31 +3,36 @@
 #include <cstring>
 
 #include "omega/events/event.hpp"
+#include "omega/gfx/shader.hpp"
 #include "omega/gfx/sprite_batch.hpp"
 #include "omega/ui/font.hpp"
+#include "omega/util/color.hpp"
+#include "smed/font_renderer.hpp"
 #include "smed/gap_buffer.hpp"
 
-Editor::Editor() : text("#include <stdio.h>") {
+Editor::Editor(omega::gfx::Shader *shader)
+    : text("#include <stdio.h>"), font_renderer(shader) {
     cursor = {text.length() - 1, 0};
     cursor_idx = text.length() - 1;
 }
 
-void Editor::render(omega::ui::Font *font, omega::gfx::SpriteBatch &batch) {
+void Editor::render(Font *font,
+                    const omega::math::mat4 &view_proj,
+                    omega::gfx::ShapeRenderer &shape) {
     int i = 0;
-    font->render(batch,
-                 text.text,
-                 text.buff1_size() + text.gap_idx,
-                 20,
-                 800 - i * 30,
-                 30,
-                 omega::util::color::white);
-    font->render(batch,
-                 text.text + text.buff1_size() + text.gap_size(),
-                 text.buff2_size(),
-                 20 + (text.buff1_size() + text.gap_idx) * 30,
-                 800 - i * 30,
-                 30,
-                 omega::util::color::white);
+    f32 height = 25.0f;
+    f32 scale_factor = height / font->get_font_size();
+    font_renderer.begin(view_proj);
+    auto pos = font_renderer.render(
+        font, text, {20, 800}, {20, 800}, height, omega::util::color::white);
+
+    font_renderer.end();
+
+    shape.begin();
+    shape.set_view_projection_matrix(view_proj);
+    shape.color = omega::util::color::white;
+    shape.line({pos.x, pos.y}, {pos.x, pos.y + height * 0.8});
+    shape.end();
 }
 
 void Editor::shape_render(omega::gfx::ShapeRenderer &shape) {
@@ -53,14 +58,14 @@ void Editor::handle_input(omega::events::InputManager &input) {
         if (delete_line) {
             cursor.y--;
             cursor.x = -1; // TODO: CALCULATE NEW CURSOR.X POS
+            cursor_idx--;
         } else if (delete_char) {
             cursor.x--;
+            cursor_idx--;
         }
     }
     if (keys[omega::events::Key::k_enter]) {
         text.insert_char('\n');
-        cursor.y++;
-        cursor.x = -1;
     }
     if (keys.key_just_pressed(omega::events::Key::k_tab)) {
         for (int i = 0; i < 4; ++i) {
@@ -68,15 +73,15 @@ void Editor::handle_input(omega::events::InputManager &input) {
         }
     }
     if (keys.key_just_pressed(omega::events::Key::k_left)) {
-        if (cursor.x >= 0) {
-            cursor.x--;
-            text.move_buffer(-1);
+        omega::util::debug("left");
+        if (text.cursor() > 0) {
+            text.move_buffer(false);
         }
     }
     if (keys.key_just_pressed(omega::events::Key::k_right)) {
+        omega::util::debug("right");
         if (text.gap_end < text.end) {
-            cursor.x++;
-            text.move_buffer(1);
+            text.move_buffer(true);
         }
     }
 }

@@ -15,6 +15,7 @@ SET (CMAKE_CXX_FLAGS "-Wall -Wextra -Wcast-qual -Wconversion-null -Wformat-secur
 
 include_directories(".")
 include_directories("./lib/")
+include_directories("./lib/freetype/include/")
 include_directories("../games/omega/")
 include_directories("../games/omega/lib/")
 include_directories("../games/omega/lib/glad/include/")
@@ -34,6 +35,7 @@ target_link_libraries(${PROJECT_NAME}
     stb
     libtmx-parser
     SDL2
+    freetype
 )
 
 target_link_directories(${PROJECT_NAME}
@@ -43,4 +45,5 @@ target_link_directories(${PROJECT_NAME}
     PUBLIC ../games/omega/build/lib/glad/
     PUBLIC ../games/omega/build/lib/stb/
     PUBLIC ../games/omega/build/lib/libtmx-parser/
+    PUBLIC lib/freetype/
 )
