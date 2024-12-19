@@ -12,7 +12,6 @@
 
 Editor::Editor(omega::gfx::Shader *shader)
     : text("#include <stdio.h>"), font_renderer(shader) {
-    cursor = {text.length() - 1, 0};
     cursor_idx = text.length() - 1;
 }
 
@@ -35,53 +34,103 @@ void Editor::render(Font *font,
     shape.end();
 }
 
-void Editor::shape_render(omega::gfx::ShapeRenderer &shape) {
-    shape.color = omega::util::color::white;
-    shape.line({20 + (cursor.x + 1) * 30, 800 - (cursor.y - 1) * 30},
-               {20 + (cursor.x + 1) * 30, 800 - cursor.y * 30});
-}
-
 void Editor::save(const std::string &file) {}
 
 void Editor::handle_text(char c) {
     text.insert_char(c);
-    cursor.x++;
 }
 
 void Editor::handle_input(omega::events::InputManager &input) {
+    // for any keys that are not up/down, reset the vertical pos
     auto &keys = input.key_manager;
     if (keys[omega::events::Key::k_backspace]) {
+        vertical_pos = -1;
         // TODO: add a small input delay
         auto result = text.delete_char();
         bool delete_line = std::get<0>(result);
         bool delete_char = std::get<1>(result);
-        if (delete_line) {
-            cursor.y--;
-            cursor.x = -1; // TODO: CALCULATE NEW CURSOR.X POS
-            cursor_idx--;
-        } else if (delete_char) {
-            cursor.x--;
+        if (delete_line || delete_char) {
             cursor_idx--;
         }
     }
     if (keys[omega::events::Key::k_enter]) {
+        vertical_pos = -1;
         text.insert_char('\n');
     }
     if (keys.key_just_pressed(omega::events::Key::k_tab)) {
+        vertical_pos = -1;
         for (int i = 0; i < 4; ++i) {
             handle_text(' ');
         }
     }
     if (keys.key_just_pressed(omega::events::Key::k_left)) {
-        omega::util::debug("left");
+        vertical_pos = -1;
         if (text.cursor() > 0) {
             text.move_buffer(false);
         }
     }
     if (keys.key_just_pressed(omega::events::Key::k_right)) {
-        omega::util::debug("right");
+        vertical_pos = -1;
         if (text.gap_end < text.end) {
             text.move_buffer(true);
+        }
+    }
+    if (keys.key_just_pressed(omega::events::Key::k_up)) {
+        // TODO: Remember initial column when starting the down/up sequence
+        // so that we can go like
+        // text_
+        // _
+        // initial text_ for the cursor position
+
+        // calcute the current line start and the previous line start
+        u32 line_start = text.find_line_start(text.cursor());
+        u32 prev_line_start = line_start; // both are 0 when line_start = 0
+        if (line_start > 0) {
+            prev_line_start = text.find_line_start(line_start - 1);
+        }
+        // calculate the current column and previous column
+        u32 current_col = text.cursor() - line_start;
+        // ensures that if the previous vertical_pos > current_col, the cursor
+        // should move there
+        u32 prev_col_idx =
+            prev_line_start + omega::math::max((i32)current_col, vertical_pos);
+
+        // if this doesn't cause the cursor to overflow into this current line
+        if (prev_col_idx < line_start) {
+            text.move_cursor_to(prev_col_idx);
+        } // when the previous line is shorter
+        else if (line_start > 0) {
+            text.move_cursor_to(line_start - 1);
+        } else if (line_start == 0) {
+            text.move_cursor_to(0);
+        }
+
+        // track the vertical position, if this is the first up/down keystroke
+        if (vertical_pos == -1) {
+            vertical_pos = current_col;
+        }
+    }
+    if (keys.key_just_pressed(omega::events::Key::k_down)) {
+        u32 idx = text.find_line_end(text.cursor());
+        if (idx == text.capacity()) {
+            text.move_cursor_to(idx);
+            return;
+        }
+        u32 next_line_end = text.find_line_end(idx + 1);
+        // calculate current column
+        u32 line_start = text.find_line_start(text.cursor());
+        u32 current_col = text.cursor() - line_start;
+
+        u32 next_col_idx =
+            idx + 1 + omega::math::max((i32)current_col, vertical_pos);
+        if (next_col_idx <= next_line_end) {
+            text.move_cursor_to(next_col_idx);
+        } else {
+            text.move_cursor_to(next_line_end);
+        }
+        // track the vertical position, if this is the first up/down keystroke
+        if (vertical_pos == -1) {
+            vertical_pos = current_col;
         }
     }
 }

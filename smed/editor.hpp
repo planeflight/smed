@@ -29,9 +29,9 @@ class Editor {
 
   private:
     GapBuffer text;
-    omega::math::ivec2 cursor{0};
-    char *current_line = nullptr;
     u32 cursor_idx;
+    i32 vertical_pos = -1; // represents the initial up/down cursor column, -1
+                           // when none has been initiated
     FontRenderer font_renderer;
 };
 
