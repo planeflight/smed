@@ -1,7 +1,9 @@
 #include "editor.hpp"
 
 #include <cstring>
+#include <fstream>
 
+#include "omega/core/error.hpp"
 #include "omega/events/event.hpp"
 #include "omega/gfx/shader.hpp"
 #include "omega/gfx/sprite_batch.hpp"
@@ -34,7 +36,17 @@ void Editor::render(Font *font,
     shape.end();
 }
 
-void Editor::save(const std::string &file) {}
+void Editor::save(const std::string &file) {
+    std::ofstream of;
+    of.open(file);
+    if (of.fail()) {
+        omega::util::err("Failed to open file: '{}'", file);
+    }
+
+    of.write(text.text, text.buff1_size() + text.gap_idx);
+    of.write(text.gap_end, text.buff2_size());
+    of.close();
+}
 
 void Editor::handle_text(char c) {
     text.insert_char(c);
@@ -132,5 +144,8 @@ void Editor::handle_input(omega::events::InputManager &input) {
         if (vertical_pos == -1) {
             vertical_pos = current_col;
         }
+    }
+    if (keys[omega::events::Key::k_l_ctrl] && keys[omega::events::Key::k_s]) {
+        save("./output.txt");
     }
 }

@@ -21,7 +21,6 @@ class Editor {
     void render(Font *font,
                 const omega::math::mat4 &view_proj,
                 omega::gfx::ShapeRenderer &shape);
-    void shape_render(omega::gfx::ShapeRenderer &shape);
     void save(const std::string &file);
 
     void handle_text(char c);
