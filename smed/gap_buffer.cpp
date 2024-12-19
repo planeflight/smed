@@ -19,7 +19,6 @@ GapBuffer::~GapBuffer() {
 }
 
 void GapBuffer::move_buffer(bool right) {
-    print();
     if (right) {
         gap_start++;
         *(gap_start + gap_idx - 1) = *gap_end;
@@ -29,13 +28,13 @@ void GapBuffer::move_buffer(bool right) {
         gap_end--;
         *gap_end = gap_start[gap_idx];
     }
-    print();
 }
 
 void GapBuffer::insert_char(char c) {
     if (gap_idx < gap_length) {
         gap_start[gap_idx++] = c;
     } else {
+        // use amortized constant time with 2^N
         gap_length = add_gap_length;
         char *new_text = new char[total_length + gap_length];
         // copy everything from the buff1, gap buffer into the new buff1
@@ -53,6 +52,23 @@ void GapBuffer::insert_char(char c) {
         gap_end = gap_start + gap_length;
         gap_idx = 0;
         gap_start[gap_idx++] = c;
+    }
+}
+
+void GapBuffer::move_cursor_to(u32 new_pos) {
+    i32 steps = (i32)new_pos - cursor();
+    if (steps > 0) {
+        // need to skip over the gap, then move the buffer/cursor
+        steps -= gap_length - gap_idx;
+        for (int i = 0; i < steps; ++i) {
+            move_buffer(true);
+        }
+    } else {
+        // since this is all before the buffer (left), we ignore gap buffer
+        steps *= -1;
+        for (int i = 0; i < steps; ++i) {
+            move_buffer(false);
+        }
     }
 }
 
