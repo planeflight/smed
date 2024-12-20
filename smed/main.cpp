@@ -1,3 +1,5 @@
+#include <SDL3/SDL_keyboard.h>
+
 #include "omega/core/core.hpp"
 #include "omega/events/event.hpp"
 #include "omega/gfx/gl.hpp"
@@ -23,7 +25,7 @@ struct App : public core::App {
                                          "./res/font/press2p.png",
                                          ui::font_characters::press_start_2p,
                                          8);
-        // SDL_StartTextInput();
+        SDL_StartTextInput(window->get_native_window());
         Font::init();
         font = util::create_uptr<Font>(
             "./res/font/FiraMonoNerdFontMono-Regular.otf", 64);
@@ -50,11 +52,6 @@ struct App : public core::App {
                        cam->get_view_projection_matrix(),
                        globals->shape_renderer);
         batch.end_render();
-
-        // shape.set_view_projection_matrix(cam->get_view_projection_matrix());
-        // shape.begin();
-        // editor->shape_render(shape);
-        // shape.end();
     }
 
     void update(f32 dt) override {}
@@ -82,14 +79,11 @@ struct App : public core::App {
                 case events::EventType::quit:
                     running = false;
                     break;
-                case events::EventType::window_event:
-                    if (event.window.event ==
-                        (u32)events::WindowEvents::window_resized) {
-                        // change window width, height data
-                        core::Window::instance()->on_resize(event.window.data1,
-                                                            event.window.data2);
-                        on_resize(event.window.data1, event.window.data2);
-                    }
+                case events::EventType::window_resized:
+                    // change window width, height data
+                    core::Window::instance()->on_resize(event.window.data1,
+                                                        event.window.data2);
+                    on_resize(event.window.data1, event.window.data2);
                     break;
                 case events::EventType::mouse_wheel:
                     input.mouse.scroll_wheel =

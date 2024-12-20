@@ -14,9 +14,11 @@
 class FontRenderer {
   public:
     FontRenderer(omega::gfx::Shader *shader) : shader(shader) {
+        // create the Vertex buffer and array
         vbo = omega::util::create_uptr<omega::gfx::VertexBuffer>(
             sizeof(Vertex) * 6 * quad_count);
         vao = omega::util::create_uptr<omega::gfx::VertexArray>();
+
         omega::gfx::VertexBufferLayout layout;
         layout.push(OMEGA_GL_FLOAT, 2);
         layout.push(OMEGA_GL_FLOAT, 2);
@@ -42,6 +44,11 @@ class FontRenderer {
         f32 scale_factor = height / font->get_font_size();
         omega::math::vec2 cursor = pos;
 
+        // track the space width, so pos.x can be increased appropriately
+        u32 space_width = font->get_glyph('a').advance.x;
+
+        // WARN: Messy solution to rendering each character without a separate
+        // helper function
         const auto character = [&](const char &c) {
             if (c == '\n') {
                 pos.y -= font->get_font_height() *
@@ -50,7 +57,7 @@ class FontRenderer {
                 return;
             }
             if (c == ' ') {
-                pos.x += font->get_font_size() * scale_factor;
+                pos.x += space_width * scale_factor;
                 return;
             }
             const Glyph &glyph = font->get_glyph(c);
@@ -60,18 +67,20 @@ class FontRenderer {
                                    (f32)glyph.tex_coords.y,
                                    (f32)glyph.size.x,
                                    (f32)glyph.size.y};
+            // normalize the src rectangle (texture coordinates)
             src.x = src.x / font->get_texture()->get_width();
             src.y = src.y / font->get_texture()->get_height();
             src.w = src.w / font->get_texture()->get_width();
             src.h = src.h / font->get_texture()->get_height();
 
+            // compute the destination rectangle
             omega::math::rectf dest{
                 pos.x + glyph.offset.x * scale_factor,
                 pos.y - (glyph.size.y - glyph.offset.y) * scale_factor,
                 glyph.size.x * scale_factor,
                 glyph.size.y * scale_factor};
 
-            // create the vertices
+            // create the vertices, inverting y up
             vertices[0] = {{dest.x, dest.y}, {src.x, src.y + src.h}, color};
             vertices[1] = {{dest.x + dest.w, dest.y},
                            {src.x + src.w, src.y + src.h},
@@ -83,6 +92,7 @@ class FontRenderer {
             vertices[4] = {{dest.x, dest.y + dest.h}, {src.x, src.y}, color};
             vertices[5] = vertices[0];
 
+            // send the new Quad to the gpu
             vbo->bind();
             vbo->sub_data(sizeof(Vertex) * 6 * quads_rendered,
                           sizeof(Vertex) * 6,
@@ -90,13 +100,17 @@ class FontRenderer {
             vbo->unbind();
             quads_rendered++;
 
+            // advange the position
             pos.x += glyph.advance.x * scale_factor;
         };
 
+        // first iterate through all the characters up to the cursor
         for (u32 i = 0; i < gap_buffer.buff1_size() + gap_buffer.gap_idx; ++i) {
             character(gap_buffer.text[i]);
         }
+        // store the cursor location
         cursor = pos;
+        // draw the rest of the characters
         for (u32 i = 0; i < gap_buffer.buff2_size(); ++i) {
             character(gap_buffer.gap_end[i]);
         }
@@ -104,6 +118,7 @@ class FontRenderer {
     }
 
     void end() {
+        // render the character batch
         shader->bind();
         vbo->bind();
         vao->bind();

@@ -88,12 +88,6 @@ void Editor::handle_input(omega::events::InputManager &input) {
         }
     }
     if (keys.key_just_pressed(omega::events::Key::k_up)) {
-        // TODO: Remember initial column when starting the down/up sequence
-        // so that we can go like
-        // text_
-        // _
-        // initial text_ for the cursor position
-
         // calcute the current line start and the previous line start
         u32 line_start = text.find_line_start(text.cursor());
         u32 prev_line_start = line_start; // both are 0 when line_start = 0

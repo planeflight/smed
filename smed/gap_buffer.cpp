@@ -34,7 +34,7 @@ void GapBuffer::insert_char(char c) {
     if (gap_idx < gap_length) {
         gap_start[gap_idx++] = c;
     } else {
-        // use amortized constant time with 2^N
+        // TODO: use amortized constant time with 2^N
         gap_length = add_gap_length;
         char *new_text = new char[total_length + gap_length];
         // copy everything from the buff1, gap buffer into the new buff1
