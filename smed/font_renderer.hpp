@@ -1,15 +1,21 @@
 #ifndef SMED_FONTRENDERER_HPP
 #define SMED_FONTRENDERER_HPP
 
+#include <cstring>
+#include <vector>
+
 #include "omega/core/platform.hpp"
 #include "omega/gfx/gl.hpp"
 #include "omega/gfx/shader.hpp"
 #include "omega/gfx/vertex_array.hpp"
 #include "omega/gfx/vertex_buffer.hpp"
 #include "omega/gfx/vertex_buffer_layout.hpp"
+#include "omega/util/color.hpp"
 #include "omega/util/std.hpp"
+#include "omega/util/time.hpp"
 #include "smed/font.hpp"
 #include "smed/gap_buffer.hpp"
+#include "smed/lexer.hpp"
 
 class FontRenderer {
   public:
@@ -34,6 +40,7 @@ class FontRenderer {
 
     omega::math::vec2 render(Font *font,
                              const GapBuffer &gap_buffer,
+                             const std::vector<Token> &tokens,
                              omega::math::vec2 origin,
                              omega::math::vec2 pos,
                              f32 height,
@@ -49,7 +56,8 @@ class FontRenderer {
 
         // WARN: Messy solution to rendering each character without a separate
         // helper function
-        const auto character = [&](const char &c) {
+        const auto character = [&](const char &c,
+                                   const omega::math::vec4 &col) {
             if (c == '\n') {
                 pos.y -= font->get_font_height() *
                          scale_factor; // subtract for inverted y axis
@@ -81,15 +89,14 @@ class FontRenderer {
                 glyph.size.y * scale_factor};
 
             // create the vertices, inverting y up
-            vertices[0] = {{dest.x, dest.y}, {src.x, src.y + src.h}, color};
-            vertices[1] = {{dest.x + dest.w, dest.y},
-                           {src.x + src.w, src.y + src.h},
-                           color};
+            vertices[0] = {{dest.x, dest.y}, {src.x, src.y + src.h}, col};
+            vertices[1] = {
+                {dest.x + dest.w, dest.y}, {src.x + src.w, src.y + src.h}, col};
             vertices[2] = {{dest.x + dest.w, dest.y + dest.h},
                            {src.x + src.w, src.y},
-                           color};
+                           col};
             vertices[3] = vertices[2];
-            vertices[4] = {{dest.x, dest.y + dest.h}, {src.x, src.y}, color};
+            vertices[4] = {{dest.x, dest.y + dest.h}, {src.x, src.y}, col};
             vertices[5] = vertices[0];
 
             // send the new Quad to the gpu
@@ -106,13 +113,13 @@ class FontRenderer {
 
         // first iterate through all the characters up to the cursor
         for (u32 i = 0; i < gap_buffer.buff1_size() + gap_buffer.gap_idx; ++i) {
-            character(gap_buffer.text[i]);
+            character(gap_buffer.text[i], color);
         }
         // store the cursor location
         cursor = pos;
         // draw the rest of the characters
         for (u32 i = 0; i < gap_buffer.buff2_size(); ++i) {
-            character(gap_buffer.gap_end[i]);
+            character(gap_buffer.gap_end[i], color);
         }
         return cursor;
     }
@@ -123,6 +130,7 @@ class FontRenderer {
         vbo->bind();
         vao->bind();
         shader->set_uniform_1i("u_texture", 0);
+        shader->set_uniform_1f("u_time", omega::util::time::get_time<f32>());
         omega::gfx::draw_arrays(OMEGA_GL_TRIANGLES, 0, quads_rendered * 6);
 
         vao->unbind();
