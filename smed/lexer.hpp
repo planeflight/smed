@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <string>
 
+// The following initial implementation is Tsoding's:
+// https://www.youtube.com/watch?v=AqyZztKlSGQ&list=PLpM-Dvs8t0VZVshbPeHPculzFFBdQWIFu&index=15
 enum class TokenType {
     END = 0,
     INVALID,
