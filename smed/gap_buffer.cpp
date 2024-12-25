@@ -9,8 +9,8 @@ GapBuffer::GapBuffer(const char *text) {
 
     // the cursor is automatically at the end
     this->end = this->text + total_length;
-    strncpy(this->text, text, text_length);
-    gap_start = this->text + text_length;
+    strncpy(this->text + gap_length, text, text_length);
+    gap_start = this->text;
     gap_end = gap_start + gap_length;
 }
 

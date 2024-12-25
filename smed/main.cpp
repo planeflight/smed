@@ -32,7 +32,7 @@ struct App : public core::App {
         font = util::create_uptr<Font>(
             "./res/font/FiraMonoNerdFontMono-Regular.otf", 64);
 
-        std::ifstream ifs("./res/test.cpp");
+        std::ifstream ifs("./smed/editor.cpp");
         std::string content((std::istreambuf_iterator<char>(ifs)),
                             (std::istreambuf_iterator<char>()));
 
@@ -63,12 +63,10 @@ struct App : public core::App {
         auto &batch = globals->sprite_batch;
         auto &shape = globals->shape_renderer;
 
-        batch.set_view_projection_matrix(cam->get_view_projection_matrix());
-        batch.begin_render();
-        editor->render(font.get(),
-                       cam->get_view_projection_matrix(),
-                       globals->shape_renderer);
-        batch.end_render();
+        // batch.set_view_projection_matrix(cam->get_view_projection_matrix());
+        // batch.begin_render();
+        editor->render(font.get(), *cam, globals->shape_renderer);
+        // batch.end_render();
     }
 
     void update(f32 dt) override {}
@@ -132,7 +130,7 @@ struct App : public core::App {
         window->swap_buffers();
     }
 
-    util::uptr<scene::Camera> cam = nullptr;
+    util::uptr<scene::OrthographicCamera> cam = nullptr;
     util::uptr<Editor> editor = nullptr;
     util::uptr<Font> font = nullptr;
     util::uptr<gfx::FrameBuffer> fbo = nullptr;

@@ -70,6 +70,7 @@ constexpr static char *keywords[] = {
     "operator",
     "or",
     "or_eq",
+    "override",
     "private",
     "protected",
     "public",
@@ -298,6 +299,48 @@ Token Lexer::next() {
             token.len++;
         }
         return token;
+    }
+
+    // find some operators
+    const char *ops[] = {"=",
+                         "!",
+                         "==",
+                         ">",
+                         "<",
+                         ">=",
+                         "<=",
+                         "!=",
+                         "+",
+                         "-",
+                         "*",
+                         "/",
+                         "%",
+                         "::"};
+    const TokenType token_types[] = {TokenType::ASSIGNMENT,
+                                     TokenType::NOT,
+                                     TokenType::EQUALS,
+                                     TokenType::GT,
+                                     TokenType::LT,
+                                     TokenType::GOT,
+                                     TokenType::LOT,
+                                     TokenType::NOT_EQUAL,
+                                     TokenType::PLUS,
+                                     TokenType::MINUS,
+                                     TokenType::MUL,
+                                     TokenType::DIV,
+                                     TokenType::MOD,
+                                     TokenType::SCOPE};
+    for (const char *op : ops) {
+        size_t i = 0;
+        size_t l = strlen(op);
+        if (starts_with(op, l)) {
+            token.type = token_types[i++];
+            for (size_t i = 0; i < l; ++i) {
+                chop_char();
+            }
+            token.len += l;
+            return token;
+        }
     }
 
     token.type = TokenType::INVALID;

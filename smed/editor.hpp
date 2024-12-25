@@ -9,6 +9,7 @@
 #include "omega/gfx/shader.hpp"
 #include "omega/gfx/shape_renderer.hpp"
 #include "omega/gfx/sprite_batch.hpp"
+#include "omega/scene/orthographic_camera.hpp"
 #include "omega/util/types.hpp"
 #include "smed/font.hpp"
 #include "smed/font_renderer.hpp"
@@ -20,7 +21,7 @@ class Editor {
     Editor(omega::gfx::Shader *shader, Font *font, const std::string &text);
 
     void render(Font *font,
-                const omega::math::mat4 &view_proj,
+                omega::scene::OrthographicCamera &camera,
                 omega::gfx::ShapeRenderer &shape);
     void save(const std::string &file);
 

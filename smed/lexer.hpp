@@ -24,7 +24,21 @@ enum class TokenType {
     TYPE,
     NUMBER,
     STRING,
-    COMMENT
+    COMMENT,
+    ASSIGNMENT,
+    NOT,
+    EQUALS,
+    GT,
+    LT,
+    GOT,
+    LOT,
+    NOT_EQUAL,
+    PLUS,
+    MINUS,
+    MUL,
+    DIV,
+    MOD,
+    SCOPE
 };
 
 struct Token {

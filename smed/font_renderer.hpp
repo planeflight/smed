@@ -32,13 +32,12 @@ class FontRenderer {
         vao->add_buffer(*vbo, layout);
     }
 
-    void begin(const omega::math::mat4 &view_proj) {
-        shader->bind();
-        shader->set_uniform_mat4f("u_view_proj", view_proj);
+    void begin() {
         quads_rendered = 0;
     }
 
     omega::math::vec2 render(Font *font,
+                             const omega::math::mat4 &view_proj,
                              GapBuffer &gap_buffer,
                              const std::vector<Token> &tokens,
                              omega::math::vec2 origin,
@@ -75,6 +74,28 @@ class FontRenderer {
                     break;
                 case TokenType::COMMENT:
                     col = {0.5f, 0.5f, 0.5f, 1.0f};
+                    break;
+                case TokenType::CLOSE_PAREN:
+                case TokenType::OPEN_PAREN:
+                case TokenType::OPEN_CURLY:
+                case TokenType::CLOSE_CURLY:
+                    col = {0.6f, 0.7f, 0.7f, 1.0f};
+                    break;
+                case TokenType::EQUALS:
+                case TokenType::LT:
+                case TokenType::GT:
+                case TokenType::ASSIGNMENT:
+                case TokenType::GOT:
+                case TokenType::LOT:
+                case TokenType::NOT_EQUAL:
+                case TokenType::NOT:
+                case TokenType::PLUS:
+                case TokenType::MINUS:
+                case TokenType::MUL:
+                case TokenType::DIV:
+                case TokenType::MOD:
+                case TokenType::SCOPE:
+                    col = {0.4f, 0.6f, 0.85f, 1.0f};
                     break;
                 default:
                     col = color;
@@ -127,6 +148,10 @@ class FontRenderer {
                               vertices);
                 vbo->unbind();
                 quads_rendered++;
+                if (quads_rendered == quad_count) {
+                    end(view_proj);
+                    begin();
+                }
             }
         };
 
@@ -150,11 +175,12 @@ class FontRenderer {
         return cursor;
     }
 
-    void end() {
+    void end(const omega::math::mat4 &view_proj) {
         // render the character batch
         shader->bind();
         vbo->bind();
         vao->bind();
+        shader->set_uniform_mat4f("u_view_proj", view_proj);
         shader->set_uniform_1i("u_texture", 0);
         shader->set_uniform_1f("u_time", omega::util::time::get_time<f32>());
         omega::gfx::draw_arrays(OMEGA_GL_TRIANGLES, 0, quads_rendered * 6);

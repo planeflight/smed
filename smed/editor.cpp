@@ -20,26 +20,39 @@ Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
 }
 
 void Editor::render(Font *font,
-                    const omega::math::mat4 &view_proj,
+                    omega::scene::OrthographicCamera &camera,
                     omega::gfx::ShapeRenderer &shape) {
     int i = 0;
     f32 height = 25.0f;
     f32 scale_factor = height / font->get_font_size();
-    font_renderer.begin(view_proj);
-    auto pos = font_renderer.render(font,
-                                    text,
-                                    tokens,
-                                    {20, 800},
-                                    {20, 800},
-                                    height,
-                                    omega::util::color::white);
+    font_renderer.begin();
+    auto pos = font_renderer.render(
+        font,
+        camera.get_view_projection_matrix(), // WARN: old view_proj should work
+                                             // as long as old render and new
+                                             // render happen in the same flush
+        text,
+        tokens,
+        {20, 800},
+        {20, 800},
+        height,
+        omega::util::color::white);
+    // calculate cursor pos
     cursor_pos.bottom = {pos.x, pos.y};
     cursor_pos.top = {pos.x, pos.y + height * 0.8};
 
-    font_renderer.end();
+    // some camera panning action!
+    omega::math::vec3 target_cam{0.0f};
+    target_cam.x = pos.x - camera.get_width() * 0.25f;
+    target_cam.y = pos.y - camera.get_height() * 0.5f;
+    camera.position += (target_cam - camera.position) * 0.025f;
+    camera.recalculate_view_matrix();
+
+    // render the text batch finally
+    font_renderer.end(camera.get_view_projection_matrix());
 
     shape.begin();
-    shape.set_view_projection_matrix(view_proj);
+    shape.set_view_projection_matrix(camera.get_view_projection_matrix());
     shape.color = omega::util::color::white;
     shape.line(cursor_pos.bottom, cursor_pos.top);
 
@@ -51,7 +64,7 @@ void Editor::render(Font *font,
             selection_start_pos.bottom.x,
             selection_start_pos.bottom.y,
             width,
-            height * 0.8f,
+            font->get_font_height() * scale_factor * 0.8f,
         });
     }
     shape.end();
