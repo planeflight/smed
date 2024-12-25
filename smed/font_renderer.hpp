@@ -73,6 +73,9 @@ class FontRenderer {
                 case TokenType::PREPROCESSOR:
                     col = {0.7f, 0.6f, 0.7f, 1.0f};
                     break;
+                case TokenType::COMMENT:
+                    col = {0.5f, 0.5f, 0.5f, 1.0f};
+                    break;
                 default:
                     col = color;
                     break;

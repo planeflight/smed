@@ -98,15 +98,8 @@ constexpr static char *keywords[] = {
     "#else",
 };
 
-constexpr static char *builtin_types[] = {
-    "int",
-    "short",
-    "unsigned",
-    "float",
-    "char",
-    "long",
-    "double",
-};
+constexpr static char *builtin_types[] =
+    {"int", "short", "unsigned", "float", "char", "long", "double", "void"};
 
 std::string Token::to_string() {
     switch (type) {
@@ -260,6 +253,7 @@ Token Lexer::next() {
         return token;
     }
 
+    // all symbols
     if (is_symbol_start(text->get(idx))) {
         token.type = TokenType::SYMBOL;
         while (idx < len && is_symbol(text->get(idx))) {
@@ -290,6 +284,16 @@ Token Lexer::next() {
     if (is_num_start(text->get(idx))) {
         token.type = TokenType::NUMBER;
         while (idx < len && is_num(text->get(idx))) {
+            chop_char();
+            token.len++;
+        }
+        return token;
+    }
+
+    // find comments
+    if (starts_with("//", 2)) {
+        token.type = TokenType::COMMENT;
+        while (idx < len && text->get(idx) != '\n') {
             chop_char();
             token.len++;
         }

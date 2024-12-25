@@ -23,7 +23,8 @@ enum class TokenType {
     KEYWORD,
     TYPE,
     NUMBER,
-    STRING
+    STRING,
+    COMMENT
 };
 
 struct Token {
