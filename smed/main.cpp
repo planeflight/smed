@@ -2,12 +2,14 @@
 
 #include "omega/core/core.hpp"
 #include "omega/events/event.hpp"
+#include "omega/gfx/frame_buffer.hpp"
 #include "omega/gfx/gl.hpp"
 #include "omega/scene/orthographic_camera.hpp"
 #include "omega/ui/font_characters.hpp"
 #include "omega/util/std.hpp"
 #include "smed/editor.hpp"
 #include "smed/font.hpp"
+#include "smed/lexer.hpp"
 
 using namespace omega;
 
@@ -29,8 +31,23 @@ struct App : public core::App {
         Font::init();
         font = util::create_uptr<Font>(
             "./res/font/FiraMonoNerdFontMono-Regular.otf", 64);
+
+        std::ifstream ifs("./res/test.cpp");
+        std::string content((std::istreambuf_iterator<char>(ifs)),
+                            (std::istreambuf_iterator<char>()));
+
         editor = util::create_uptr<Editor>(
-            globals->asset_manager.get_shader("font"));
+            globals->asset_manager.get_shader("font"), font.get(), content);
+
+        std::vector<gfx::FrameBufferAttachment> attachments;
+        attachments.push_back({
+            .width = 1600,
+            .height = 900,
+            .name = "buffer",
+            .min_filter = gfx::texture::TextureParam::NEAREST,
+            .mag_filter = gfx::texture::TextureParam::NEAREST,
+        });
+        fbo = util::create_uptr<gfx::FrameBuffer>(1600, 900, attachments);
     }
 
     ~App() {
@@ -38,7 +55,7 @@ struct App : public core::App {
     }
 
     void render(f32 dt) override {
-        gfx::set_clear_color(0.1f, 0.0f, 0.1f, 1.0f);
+        gfx::set_clear_color(0.0f, 0.0f, 0.0f, 1.0f);
         gfx::clear_buffer(OMEGA_GL_COLOR_BUFFER_BIT);
         cam->recalculate_view_matrix();
 
@@ -118,6 +135,7 @@ struct App : public core::App {
     util::uptr<scene::Camera> cam = nullptr;
     util::uptr<Editor> editor = nullptr;
     util::uptr<Font> font = nullptr;
+    util::uptr<gfx::FrameBuffer> fbo = nullptr;
 };
 
 int main() {
