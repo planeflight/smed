@@ -38,7 +38,9 @@ enum class TokenType {
     MUL,
     DIV,
     MOD,
-    SCOPE
+    SCOPE,
+    AND,
+    OR
 };
 
 struct Token {

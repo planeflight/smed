@@ -321,7 +321,9 @@ Token Lexer::next() {
                          "*",
                          "/",
                          "%",
-                         "::"};
+                         "::",
+                         "&&",
+                         "||"};
     const TokenType token_types[] = {TokenType::ASSIGNMENT,
                                      TokenType::NOT,
                                      TokenType::EQUALS,
@@ -335,7 +337,9 @@ Token Lexer::next() {
                                      TokenType::MUL,
                                      TokenType::DIV,
                                      TokenType::MOD,
-                                     TokenType::SCOPE};
+                                     TokenType::SCOPE,
+                                     TokenType::AND,
+                                     TokenType::OR};
     for (const char *op : ops) {
         size_t i = 0;
         size_t l = strlen(op);
