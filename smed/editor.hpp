@@ -30,6 +30,7 @@ class Editor {
 
   private:
     void retokenize();
+    void search(const std::string &text);
 
     GapBuffer text;
     Lexer lexer;

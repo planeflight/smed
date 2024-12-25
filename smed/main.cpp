@@ -55,7 +55,7 @@ struct App : public core::App {
     }
 
     void render(f32 dt) override {
-        gfx::set_clear_color(0.0f, 0.0f, 0.0f, 1.0f);
+        gfx::set_clear_color(0.1f, 0.05f, 0.14f, 1.0f);
         gfx::clear_buffer(OMEGA_GL_COLOR_BUFFER_BIT);
         cam->recalculate_view_matrix();
 

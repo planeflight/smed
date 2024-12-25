@@ -213,3 +213,5 @@ void Editor::retokenize() {
         token = lexer.next();
     }
 }
+
+void Editor::search(const std::string &text) {}

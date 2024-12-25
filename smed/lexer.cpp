@@ -264,8 +264,11 @@ Token Lexer::next() {
 
         // find keywords
         for (const auto &kwd : keywords) {
-            u32 start_index = text->get_index_from_pointer(token.text);
-            if (text->compare(start_index, kwd, strlen(kwd))) {
+            size_t start_index = text->get_index_from_pointer(token.text);
+            // if the first chunk is the keyword and they have the same length
+            size_t kwd_len = strlen(kwd);
+            if (text->compare(start_index, kwd, kwd_len) &&
+                kwd_len == token.len) {
                 token.type = TokenType::KEYWORD;
                 return token;
             }
@@ -273,8 +276,11 @@ Token Lexer::next() {
 
         // find types
         for (const auto &type : builtin_types) {
-            u32 start_index = text->get_index_from_pointer(token.text);
-            if (text->compare(start_index, type, strlen(type))) {
+            size_t start_index = text->get_index_from_pointer(token.text);
+            // if the first chunk is the keyword and they have the same length
+            size_t type_len = strlen(type);
+            if (text->compare(start_index, type, type_len) &&
+                type_len == token.len) {
                 token.type = TokenType::TYPE;
                 return token;
             }
