@@ -11,9 +11,11 @@
 #include "omega/util/color.hpp"
 #include "smed/font_renderer.hpp"
 #include "smed/gap_buffer.hpp"
+#include "smed/lexer.hpp"
 
-Editor::Editor(omega::gfx::Shader *shader)
-    : text("#include <stdio.h>"), font_renderer(shader) {
+Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
+    : text(text.c_str()), lexer(&this->text, font), font_renderer(shader) {
+    retokenize();
     cursor_idx = text.length() - 1;
 }
 
@@ -24,15 +26,34 @@ void Editor::render(Font *font,
     f32 height = 25.0f;
     f32 scale_factor = height / font->get_font_size();
     font_renderer.begin(view_proj);
-    auto pos = font_renderer.render(
-        font, text, {20, 800}, {20, 800}, height, omega::util::color::white);
+    auto pos = font_renderer.render(font,
+                                    text,
+                                    tokens,
+                                    {20, 800},
+                                    {20, 800},
+                                    height,
+                                    omega::util::color::white);
+    cursor_pos.bottom = {pos.x, pos.y};
+    cursor_pos.top = {pos.x, pos.y + height * 0.8};
 
     font_renderer.end();
 
     shape.begin();
     shape.set_view_projection_matrix(view_proj);
     shape.color = omega::util::color::white;
-    shape.line({pos.x, pos.y}, {pos.x, pos.y + height * 0.8});
+    shape.line(cursor_pos.bottom, cursor_pos.top);
+
+    // draw the shift part
+    if (selection_start != -1) {
+        shape.color.a = 0.5f;
+        f32 width = cursor_pos.bottom.x - selection_start_pos.bottom.x;
+        shape.rect({
+            selection_start_pos.bottom.x,
+            selection_start_pos.bottom.y,
+            width,
+            height * 0.8f,
+        });
+    }
     shape.end();
 }
 
@@ -50,6 +71,7 @@ void Editor::save(const std::string &file) {
 
 void Editor::handle_text(char c) {
     text.insert_char(c);
+    retokenize();
 }
 
 void Editor::handle_input(omega::events::InputManager &input) {
@@ -58,34 +80,47 @@ void Editor::handle_input(omega::events::InputManager &input) {
     if (keys[omega::events::Key::k_backspace]) {
         vertical_pos = -1;
         // TODO: add a small input delay
-        auto result = text.delete_char();
+        auto result = text.backspace_char();
         bool delete_line = std::get<0>(result);
         bool delete_char = std::get<1>(result);
         if (delete_line || delete_char) {
             cursor_idx--;
         }
+        retokenize();
+    }
+    if (keys[omega::events::Key::k_delete]) {
+        vertical_pos = -1;
+        text.delete_char();
+        retokenize();
     }
     if (keys[omega::events::Key::k_enter]) {
         vertical_pos = -1;
         text.insert_char('\n');
+        retokenize();
     }
     if (keys.key_just_pressed(omega::events::Key::k_tab)) {
         vertical_pos = -1;
         for (int i = 0; i < 4; ++i) {
             handle_text(' ');
         }
+        retokenize();
     }
+    // arrow keys
     if (keys.key_just_pressed(omega::events::Key::k_left)) {
         vertical_pos = -1;
         if (text.cursor() > 0) {
             text.move_buffer(false);
+            if (selection_start != -1) selection_size--;
         }
+        retokenize();
     }
     if (keys.key_just_pressed(omega::events::Key::k_right)) {
         vertical_pos = -1;
         if (text.gap_end < text.end) {
             text.move_buffer(true);
+            if (selection_start != -1) selection_size++;
         }
+        retokenize();
     }
     if (keys.key_just_pressed(omega::events::Key::k_up)) {
         // calcute the current line start and the previous line start
@@ -115,6 +150,7 @@ void Editor::handle_input(omega::events::InputManager &input) {
         if (vertical_pos == -1) {
             vertical_pos = current_col;
         }
+        retokenize();
     }
     if (keys.key_just_pressed(omega::events::Key::k_down)) {
         u32 idx = text.find_line_end(text.cursor());
@@ -138,8 +174,29 @@ void Editor::handle_input(omega::events::InputManager &input) {
         if (vertical_pos == -1) {
             vertical_pos = current_col;
         }
+        retokenize();
     }
     if (keys[omega::events::Key::k_l_ctrl] && keys[omega::events::Key::k_s]) {
         save("./output.txt");
+    }
+    // just pressed shift
+    if (keys.key_just_pressed(omega::events::Key::k_l_shift)) {
+        selection_start = cursor_idx;
+        selection_start_pos = cursor_pos;
+    }
+    if (!keys[omega::events::Key::k_l_shift] && selection_size == 0) {
+        selection_start = -1;
+    }
+}
+
+void Editor::retokenize() {
+    tokens.clear();
+
+    lexer.retokenize();
+    Token token = lexer.next();
+    while (token.type != TokenType::END) {
+        tokens.push_back(token);
+        u32 idx = text.get_index_from_pointer(token.text);
+        token = lexer.next();
     }
 }

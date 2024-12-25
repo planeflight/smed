@@ -13,10 +13,11 @@
 #include "smed/font.hpp"
 #include "smed/font_renderer.hpp"
 #include "smed/gap_buffer.hpp"
+#include "smed/lexer.hpp"
 
 class Editor {
   public:
-    Editor(omega::gfx::Shader *shader);
+    Editor(omega::gfx::Shader *shader, Font *font, const std::string &text);
 
     void render(Font *font,
                 const omega::math::mat4 &view_proj,
@@ -27,11 +28,22 @@ class Editor {
     void handle_input(omega::events::InputManager &input);
 
   private:
+    void retokenize();
+
     GapBuffer text;
+    Lexer lexer;
+    std::vector<Token> tokens;
     u32 cursor_idx;
     i32 vertical_pos = -1; // represents the initial up/down cursor column, -1
                            // when none has been initiated
     FontRenderer font_renderer;
+
+    struct CursorPos {
+        omega::math::vec2 bottom, top;
+    } cursor_pos, selection_start_pos;
+
+    i32 selection_start = -1; // -1 represents no selection
+    i32 selection_size = 0;   // can be forwards/backwards
 };
 
 #endif // SMED_EDITOR_HPP

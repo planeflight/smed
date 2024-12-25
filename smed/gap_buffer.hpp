@@ -9,7 +9,7 @@
 
 class GapBuffer {
   public:
-    GapBuffer(char *text);
+    GapBuffer(const char *text);
     ~GapBuffer();
 
     void move_buffer(bool right);
@@ -19,14 +19,15 @@ class GapBuffer {
      * Delete the character at the gap_idx, and return if there's a line change,
      * char_change
      * */
-    std::pair<bool, bool> delete_char();
+    std::pair<bool, bool> backspace_char();
+    void delete_char();
     void print();
 
     u32 gap_size() const {
         return gap_length;
     }
     u32 length() const {
-        return total_length - gap_length;
+        return buff1_size() + buff2_size() + gap_idx;
     }
     u32 capacity() const {
         return total_length;
@@ -39,6 +40,48 @@ class GapBuffer {
     }
     u32 cursor() const {
         return buff1_size() + gap_idx;
+    }
+    bool is_keyword(char *keyword, u32 start, u32 len) const {
+        if (start + len < total_length) {
+            i32 res = strncmp(keyword, text + start, len);
+            return res == 0;
+        }
+        return false;
+    }
+
+    char &get(u32 i) const {
+        if (i < buff1_size() + gap_idx) {
+            return text[i];
+        }
+        return text[i + (gap_length - gap_idx)];
+    }
+
+    std::string substr(u32 i, u32 l) {
+        std::string s;
+        for (u32 x = i; x < i + l; ++x) {
+            s += get(x);
+        }
+        return s;
+    }
+
+    bool compare(size_t start_index, const char *s, size_t n) const {
+        if (start_index + n >= length()) {
+            return false;
+        }
+        for (size_t i = 0; i < n; ++i) {
+            if (get(start_index + i) != s[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    u32 get_index_from_pointer(const char *ptr) const {
+        u32 i = ptr - text;
+        if (i > cursor()) {
+            i -= gap_length - gap_idx;
+        }
+        return i;
     }
 
     char *text;

@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-GapBuffer::GapBuffer(char *text) {
+GapBuffer::GapBuffer(const char *text) {
     u32 text_length = strlen(text);
     this->text = new char[text_length + gap_length];
     total_length = text_length + gap_length;
@@ -72,7 +72,7 @@ void GapBuffer::move_cursor_to(u32 new_pos) {
     }
 }
 
-std::pair<bool, bool> GapBuffer::delete_char() {
+std::pair<bool, bool> GapBuffer::backspace_char() {
     bool line_change = false;
     bool char_change = false;
     // if there's text in the gap buffer, simply decrement the gap_idx
@@ -89,6 +89,14 @@ std::pair<bool, bool> GapBuffer::delete_char() {
         char_change = true;
     }
     return {line_change, char_change};
+}
+
+void GapBuffer::delete_char() {
+    // swallow the last character if possible
+    if (gap_end < end) {
+        gap_end++;
+        gap_length++;
+    }
 }
 
 void GapBuffer::print() {
