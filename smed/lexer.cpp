@@ -134,15 +134,24 @@ std::string Token::to_string() {
             return "Type";
         case TokenType::NUMBER:
             return "Number";
+        case TokenType::STRING:
+            return "String";
     }
     return "";
 }
 
-Lexer::Lexer(const char *text, size_t len)
-    : text(text), len(len), idx(0), line(0), line_start(0) {}
+Lexer::Lexer(GapBuffer *gap_buffer, Font *font)
+    : text(gap_buffer), idx(0), line(0), line_start(0), font(font) {}
+
+void Lexer::retokenize() {
+    idx = 0;
+    line = 0;
+    line_start = 0;
+    pos = {0.0f, 0.0f};
+}
 
 void Lexer::trim_left() {
-    while (idx < len && isspace(text[idx])) {
+    while (idx < text->length() && isspace(text->get(idx))) {
         chop_char();
     }
 }
@@ -158,7 +167,8 @@ bool is_symbol(char x) {
 }
 
 bool is_num(char x) {
-    return isdigit(x) || x == '.' || x == 'f' || x == 'u';
+    return isdigit(x) || x == '.' || x == 'f' || x == 'u' || x == 'b' ||
+           x == 'x';
 }
 
 bool is_num_start(char x) {
@@ -166,11 +176,15 @@ bool is_num_start(char x) {
 }
 
 char Lexer::chop_char() {
-    char x = text[idx];
+    char x = text->get(idx);
     idx++;
     if (x == '\n') {
         line++;
         line_start = idx;
+        pos.y += font->get_font_height();
+        pos.x = 0.0f;
+    } else {
+        pos.x += font->get_glyph(x).advance.x;
     }
     return x;
 }
@@ -179,13 +193,13 @@ bool Lexer::starts_with(const char *prefix, size_t prefix_len) {
     if (prefix_len == 0) {
         return true;
     }
-    if (idx + prefix_len - 1 >= len) {
+    if (idx + prefix_len - 1 >= text->length()) {
         return false;
     }
 
     // check if the prefix is equal to the current idx text
     for (size_t i = 0; i < prefix_len; ++i) {
-        if (prefix[i] != text[idx + i]) {
+        if (prefix[i] != text->get(idx + i)) {
             return false;
         }
     }
@@ -194,15 +208,18 @@ bool Lexer::starts_with(const char *prefix, size_t prefix_len) {
 
 Token Lexer::next() {
     trim_left();
-    Token token{TokenType::END, &text[idx], 0};
-    if (idx >= len) return token;
+    Token token{TokenType::END, &text->get(idx), 0, pos};
+    if (idx >= text->length()) return token;
 
-    if (text[idx] == '#') {
+    size_t len = text->length();
+
+    if (text->get(idx) == '#') {
         token.type = TokenType::PREPROCESSOR;
-        while (idx < len && text[idx] != '\n') {
+        while (idx < len && text->get(idx) != '\n') {
             token.len++;
             chop_char();
         }
+        // get last piece
         if (idx < len) {
             chop_char();
         }
@@ -217,7 +234,7 @@ Token Lexer::next() {
                                TokenType::SEMICOLON};
     for (size_t i = 0; i < 5; ++i) {
         char c = literal_tokens[i];
-        if (c == text[idx]) {
+        if (c == text->get(idx)) {
             token.type = types[i];
             token.len++;
             chop_char();
@@ -225,16 +242,35 @@ Token Lexer::next() {
         }
     }
 
-    if (is_symbol_start(text[idx])) {
+    // strings
+    if (text->get(idx) == '"') {
+        token.type = TokenType::STRING;
+        // get first piece
+        chop_char();
+        token.len++;
+        while (idx < len && text->get(idx) != '"') {
+            chop_char();
+            token.len++;
+        }
+        // get last "
+        if (idx < len) {
+            chop_char();
+            token.len++;
+        }
+        return token;
+    }
+
+    if (is_symbol_start(text->get(idx))) {
         token.type = TokenType::SYMBOL;
-        while (idx < len && is_symbol(text[idx])) {
-            idx++;
+        while (idx < len && is_symbol(text->get(idx))) {
+            chop_char();
             token.len++;
         }
 
         // find keywords
         for (const auto &kwd : keywords) {
-            if (strncmp(kwd, token.text, strlen(kwd)) == 0) {
+            u32 start_index = text->get_index_from_pointer(token.text);
+            if (text->compare(start_index, kwd, strlen(kwd))) {
                 token.type = TokenType::KEYWORD;
                 return token;
             }
@@ -242,7 +278,8 @@ Token Lexer::next() {
 
         // find types
         for (const auto &type : builtin_types) {
-            if (strncmp(type, token.text, strlen(type)) == 0) {
+            u32 start_index = text->get_index_from_pointer(token.text);
+            if (text->compare(start_index, type, strlen(type))) {
                 token.type = TokenType::TYPE;
                 return token;
             }
@@ -250,10 +287,10 @@ Token Lexer::next() {
         return token;
     }
     // find numbers
-    if (is_num_start(text[idx])) {
+    if (is_num_start(text->get(idx))) {
         token.type = TokenType::NUMBER;
-        while (idx < len && is_num(text[idx])) {
-            idx++;
+        while (idx < len && is_num(text->get(idx))) {
+            chop_char();
             token.len++;
         }
         return token;
@@ -261,7 +298,7 @@ Token Lexer::next() {
 
     token.type = TokenType::INVALID;
     token.len = 1;
-    idx++;
+    chop_char();
 
     return token;
 }
