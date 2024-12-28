@@ -46,6 +46,9 @@ class Editor {
 
     i32 selection_start = -1; // -1 represents no selection
     i32 selection_size = 0;   // can be forwards/backwards
+
+    // key lag
+    f32 key_lag_frame = 0.0f;
 };
 
 #endif // SMED_EDITOR_HPP

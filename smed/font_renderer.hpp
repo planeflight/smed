@@ -95,6 +95,8 @@ class FontRenderer {
                 case TokenType::DIV:
                 case TokenType::MOD:
                 case TokenType::SCOPE:
+                case TokenType::AND:
+                case TokenType::OR:
                     col = {0.4f, 0.6f, 0.85f, 1.0f};
                     break;
                 default:

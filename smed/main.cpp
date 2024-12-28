@@ -1,6 +1,9 @@
 #include <SDL3/SDL_keyboard.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_sdl3.h>
 
 #include "omega/core/core.hpp"
+#include "omega/core/engine_core.hpp"
 #include "omega/events/event.hpp"
 #include "omega/gfx/frame_buffer.hpp"
 #include "omega/gfx/gl.hpp"
@@ -55,7 +58,8 @@ struct App : public core::App {
     }
 
     void render(f32 dt) override {
-        gfx::set_clear_color(0.1f, 0.05f, 0.14f, 1.0f);
+        gfx::set_clear_color(
+            17.0f / 255.0f, 17.0f / 255.0f, 27.0f / 255.0f, 1.0f);
         gfx::clear_buffer(OMEGA_GL_COLOR_BUFFER_BIT);
         cam->recalculate_view_matrix();
 
@@ -67,6 +71,7 @@ struct App : public core::App {
         // batch.begin_render();
         editor->render(font.get(), *cam, globals->shape_renderer);
         // batch.end_render();
+        // ImGui::ShowDemoWindow();
     }
 
     void update(f32 dt) override {}
@@ -87,9 +92,9 @@ struct App : public core::App {
 
         events::Event event;
         while (input.poll_events(event)) {
-            // if (imgui) {
-            // ImGui_ImplSDL2_ProcessEvent(&event);
-            // }
+            if (imgui) {
+                ImGui_ImplSDL3_ProcessEvent(&event);
+            }
             switch ((events::EventType)event.type) {
                 case events::EventType::quit:
                     running = false;
@@ -123,9 +128,9 @@ struct App : public core::App {
         this->input(dt);
         this->update(dt);
 
-        // begin_imgui_frame();
+        omega::core::begin_imgui_frame();
         this->render(dt);
-        // end_imgui_frame(window);
+        omega::core::end_imgui_frame(window);
 
         window->swap_buffers();
     }

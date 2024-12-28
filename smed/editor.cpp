@@ -9,14 +9,112 @@
 #include "omega/gfx/sprite_batch.hpp"
 #include "omega/ui/font.hpp"
 #include "omega/util/color.hpp"
+#include "omega/util/time.hpp"
 #include "smed/font_renderer.hpp"
 #include "smed/gap_buffer.hpp"
+#include "smed/key_lag.hpp"
 #include "smed/lexer.hpp"
 
 Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
     : text(text.c_str()), lexer(&this->text, font), font_renderer(shader) {
     retokenize();
     cursor_idx = text.length() - 1;
+
+    register_key(omega::events::Key::k_backspace, [&]() {
+        vertical_pos = -1;
+        // TODO: add a small input delay
+        auto result = this->text.backspace_char();
+        bool delete_line = std::get<0>(result);
+        bool delete_char = std::get<1>(result);
+        if (delete_line || delete_char) {
+            cursor_idx--;
+            retokenize();
+        }
+    });
+
+    // for any keys that are not up/down, reset the vertical pos
+    register_key(omega::events::Key::k_delete, [&]() {
+        vertical_pos = -1;
+        this->text.delete_char();
+        retokenize();
+    });
+    register_key(omega::events::Key::k_enter, [&]() {
+        vertical_pos = -1;
+        this->text.insert_char('\n');
+        retokenize();
+    });
+    // INFO: need to retokenize because the buffer moves, so pointers need to
+    // change
+    register_key(omega::events::Key::k_left, [&]() {
+        vertical_pos = -1;
+        if (this->text.cursor() > 0) {
+            this->text.move_buffer(false);
+            if (selection_start != -1) selection_size--;
+        }
+        retokenize();
+    });
+    register_key(omega::events::Key::k_right, [&]() {
+        vertical_pos = -1;
+        if (this->text.gap_end < this->text.end) {
+            this->text.move_buffer(true);
+            if (selection_start != -1) selection_size++;
+        }
+        retokenize();
+    });
+    register_key(omega::events::Key::k_up, [&]() {
+        // calcute the current line start and the previous line start
+        u32 line_start = this->text.find_line_start(this->text.cursor());
+        u32 prev_line_start = line_start; // both are 0 when line_start = 0
+        if (line_start > 0) {
+            prev_line_start = this->text.find_line_start(line_start - 1);
+        }
+        // calculate the current column and previous column
+        u32 current_col = this->text.cursor() - line_start;
+        // ensures that if the previous vertical_pos > current_col, the cursor
+        // should move there
+        u32 prev_col_idx =
+            prev_line_start + omega::math::max((i32)current_col, vertical_pos);
+
+        // if this doesn't cause the cursor to overflow into this current line
+        if (prev_col_idx < line_start) {
+            this->text.move_cursor_to(prev_col_idx);
+        } // when the previous line is shorter
+        else if (line_start > 0) {
+            this->text.move_cursor_to(line_start - 1);
+        } else if (line_start == 0) {
+            this->text.move_cursor_to(0);
+        }
+
+        // track the vertical position, if this is the first up/down keystroke
+        if (vertical_pos == -1) {
+            vertical_pos = current_col;
+        }
+        retokenize();
+    });
+    register_key(omega::events::Key::k_down, [&]() {
+        u32 idx = this->text.find_line_end(this->text.cursor());
+        if (idx == text.capacity()) {
+            this->text.move_cursor_to(idx);
+            return;
+        }
+        u32 next_line_end = this->text.find_line_end(idx + 1);
+        // calculate current column
+        u32 line_start = this->text.find_line_start(this->text.cursor());
+        u32 current_col = this->text.cursor() - line_start;
+
+        u32 next_col_idx =
+            idx + 1 + omega::math::max((i32)current_col, vertical_pos);
+        if (next_col_idx <= next_line_end) {
+            this->text.move_cursor_to(next_col_idx);
+        } else {
+            this->text.move_cursor_to(next_line_end);
+        }
+        // track the vertical position, if this is the first up/down keystroke
+        if (vertical_pos == -1) {
+            vertical_pos = current_col;
+        }
+        retokenize();
+    });
 }
 
 void Editor::render(Font *font,
@@ -88,107 +186,10 @@ void Editor::handle_text(char c) {
 }
 
 void Editor::handle_input(omega::events::InputManager &input) {
-    // for any keys that are not up/down, reset the vertical pos
     auto &keys = input.key_manager;
-    if (keys[omega::events::Key::k_backspace]) {
-        vertical_pos = -1;
-        // TODO: add a small input delay
-        auto result = text.backspace_char();
-        bool delete_line = std::get<0>(result);
-        bool delete_char = std::get<1>(result);
-        if (delete_line || delete_char) {
-            cursor_idx--;
-        }
-        retokenize();
-    }
-    if (keys[omega::events::Key::k_delete]) {
-        vertical_pos = -1;
-        text.delete_char();
-        retokenize();
-    }
-    if (keys[omega::events::Key::k_enter]) {
-        vertical_pos = -1;
-        text.insert_char('\n');
-        retokenize();
-    }
-    if (keys.key_just_pressed(omega::events::Key::k_tab)) {
-        vertical_pos = -1;
-        for (int i = 0; i < 4; ++i) {
-            handle_text(' ');
-        }
-        retokenize();
-    }
-    // arrow keys
-    if (keys.key_just_pressed(omega::events::Key::k_left)) {
-        vertical_pos = -1;
-        if (text.cursor() > 0) {
-            text.move_buffer(false);
-            if (selection_start != -1) selection_size--;
-        }
-        retokenize();
-    }
-    if (keys.key_just_pressed(omega::events::Key::k_right)) {
-        vertical_pos = -1;
-        if (text.gap_end < text.end) {
-            text.move_buffer(true);
-            if (selection_start != -1) selection_size++;
-        }
-        retokenize();
-    }
-    if (keys.key_just_pressed(omega::events::Key::k_up)) {
-        // calcute the current line start and the previous line start
-        u32 line_start = text.find_line_start(text.cursor());
-        u32 prev_line_start = line_start; // both are 0 when line_start = 0
-        if (line_start > 0) {
-            prev_line_start = text.find_line_start(line_start - 1);
-        }
-        // calculate the current column and previous column
-        u32 current_col = text.cursor() - line_start;
-        // ensures that if the previous vertical_pos > current_col, the cursor
-        // should move there
-        u32 prev_col_idx =
-            prev_line_start + omega::math::max((i32)current_col, vertical_pos);
+    // update the keys that require a lag
+    update_keys(input);
 
-        // if this doesn't cause the cursor to overflow into this current line
-        if (prev_col_idx < line_start) {
-            text.move_cursor_to(prev_col_idx);
-        } // when the previous line is shorter
-        else if (line_start > 0) {
-            text.move_cursor_to(line_start - 1);
-        } else if (line_start == 0) {
-            text.move_cursor_to(0);
-        }
-
-        // track the vertical position, if this is the first up/down keystroke
-        if (vertical_pos == -1) {
-            vertical_pos = current_col;
-        }
-        retokenize();
-    }
-    if (keys.key_just_pressed(omega::events::Key::k_down)) {
-        u32 idx = text.find_line_end(text.cursor());
-        if (idx == text.capacity()) {
-            text.move_cursor_to(idx);
-            return;
-        }
-        u32 next_line_end = text.find_line_end(idx + 1);
-        // calculate current column
-        u32 line_start = text.find_line_start(text.cursor());
-        u32 current_col = text.cursor() - line_start;
-
-        u32 next_col_idx =
-            idx + 1 + omega::math::max((i32)current_col, vertical_pos);
-        if (next_col_idx <= next_line_end) {
-            text.move_cursor_to(next_col_idx);
-        } else {
-            text.move_cursor_to(next_line_end);
-        }
-        // track the vertical position, if this is the first up/down keystroke
-        if (vertical_pos == -1) {
-            vertical_pos = current_col;
-        }
-        retokenize();
-    }
     if (keys[omega::events::Key::k_l_ctrl] && keys[omega::events::Key::k_s]) {
         save("./output.txt");
     }
