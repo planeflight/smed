@@ -31,7 +31,7 @@ class Font {
     static void init() {
         FT_Error error = FT_Init_FreeType(&library);
         if (error) {
-            omega::util::err("Failed to initialize FreeType.\n");
+            OMEGA_ERROR("Failed to initialize FreeType.\n");
         }
     }
 

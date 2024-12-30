@@ -25,12 +25,11 @@ class Editor {
                 omega::gfx::ShapeRenderer &shape);
     void save(const std::string &file);
 
-    void handle_text(char c);
+    void handle_text(omega::events::InputManager &input, char c);
     void handle_input(omega::events::InputManager &input);
 
   private:
     void retokenize();
-    void search(const std::string &text);
 
     GapBuffer text;
     Lexer lexer;
@@ -46,9 +45,8 @@ class Editor {
 
     i32 selection_start = -1; // -1 represents no selection
     i32 selection_size = 0;   // can be forwards/backwards
-
-    // key lag
-    f32 key_lag_frame = 0.0f;
+    enum class Mode { EDITING = 0, SEARCHING } mode = Mode::EDITING;
+    f32 font_render_height = 25.0f;
 };
 
 #endif // SMED_EDITOR_HPP

@@ -6,9 +6,9 @@ Font::Font(const std::string &path, u32 height) : font_size(height) {
     FT_Face face;
     FT_Error error = FT_New_Face(library, path.c_str(), 0, &face);
     if (error == FT_Err_Unknown_File_Format) {
-        omega::util::err("Unknown file format for '{}'", path);
+        OMEGA_ERROR("Unknown file format for '{}'", path);
     } else if (error) {
-        omega::util::err("Error opening file '{}'", path);
+        OMEGA_ERROR("Error opening file '{}'", path);
     }
     FT_Set_Pixel_Sizes(face, 0, height);
     i32 padding = 1; // space between chars

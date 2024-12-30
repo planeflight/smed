@@ -49,7 +49,6 @@ Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
         vertical_pos = -1;
         if (this->text.cursor() > 0) {
             this->text.move_buffer(false);
-            if (selection_start != -1) selection_size--;
         }
         retokenize();
     });
@@ -57,7 +56,6 @@ Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
         vertical_pos = -1;
         if (this->text.gap_end < this->text.end) {
             this->text.move_buffer(true);
-            if (selection_start != -1) selection_size++;
         }
         retokenize();
     });
@@ -121,7 +119,7 @@ void Editor::render(Font *font,
                     omega::scene::OrthographicCamera &camera,
                     omega::gfx::ShapeRenderer &shape) {
     int i = 0;
-    f32 height = 25.0f;
+    f32 height = font_render_height;
     f32 scale_factor = height / font->get_font_size();
     font_renderer.begin();
     auto pos = font_renderer.render(
@@ -149,6 +147,7 @@ void Editor::render(Font *font,
     // render the text batch finally
     font_renderer.end(camera.get_view_projection_matrix());
 
+    // render cursor
     shape.begin();
     shape.set_view_projection_matrix(camera.get_view_projection_matrix());
     shape.color = omega::util::color::white;
@@ -172,7 +171,7 @@ void Editor::save(const std::string &file) {
     std::ofstream of;
     of.open(file);
     if (of.fail()) {
-        omega::util::err("Failed to open file: '{}'", file);
+        OMEGA_ERROR("Failed to open file: '{}'", file);
     }
 
     of.write(text.text, text.buff1_size() + text.gap_idx);
@@ -180,26 +179,62 @@ void Editor::save(const std::string &file) {
     of.close();
 }
 
-void Editor::handle_text(char c) {
-    text.insert_char(c);
-    retokenize();
+void Editor::handle_text(omega::events::InputManager &input, char c) {
+    auto &keys = input.key_manager;
+    // lock the text when ctrl is pressed
+    if (!keys[omega::events::Key::k_l_ctrl]) {
+        text.insert_char(c);
+        retokenize();
+    }
 }
 
 void Editor::handle_input(omega::events::InputManager &input) {
+    using namespace omega::events;
     auto &keys = input.key_manager;
     // update the keys that require a lag
     update_keys(input);
 
-    if (keys[omega::events::Key::k_l_ctrl] && keys[omega::events::Key::k_s]) {
+    const auto update_selection = [&](bool shift, i32 dir) {
+        if (shift) {}
+    };
+
+    if (keys[Key::k_l_ctrl] && keys[Key::k_s]) {
         save("./output.txt");
     }
     // just pressed shift
-    if (keys.key_just_pressed(omega::events::Key::k_l_shift)) {
+    if (keys.key_just_pressed(Key::k_l_shift)) {
         selection_start = cursor_idx;
         selection_start_pos = cursor_pos;
     }
-    if (!keys[omega::events::Key::k_l_shift] && selection_size == 0) {
+    if (keys[Key::k_l_shift]) {
+        if (keys[Key::k_left]) selection_size--;
+        // else
+        // selection_start = -1;
+        if (keys[Key::k_right]) selection_size++;
+        // else
+        // selection_start = -1;
+    }
+    // if not pressed and there's no selection
+    if (!keys[Key::k_l_shift] && selection_size == 0) {
         selection_start = -1;
+    }
+    // search functionality
+    if (keys[Key::k_l_ctrl] && keys[Key::k_f]) {
+        u32 s = text.search(text.cursor(), "void");
+        OMEGA_DEBUG("Found {} at {}", "void", s);
+    }
+    // zooming
+    if (keys[Key::k_l_ctrl] && keys[Key::k_minus]) {
+        font_render_height -= 5;
+        if (font_render_height < 10.0f) {
+            font_render_height = 10.0f;
+        }
+    }
+    if (keys[Key::k_l_ctrl] && keys[Key::k_plus]) {
+        font_render_height += 5;
+        if (font_render_height > 80.0f) {
+            font_render_height = 80.0f;
+        }
     }
 }
 
@@ -214,5 +249,3 @@ void Editor::retokenize() {
         token = lexer.next();
     }
 }
-
-void Editor::search(const std::string &text) {}

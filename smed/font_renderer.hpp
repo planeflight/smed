@@ -159,6 +159,7 @@ class FontRenderer {
 
         // render the text
         for (const auto &token : tokens) {
+            // TODO: only render what will actually be rendered
             token_render(token);
         }
 

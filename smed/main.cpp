@@ -89,6 +89,7 @@ struct App : public core::App {
 
         auto &input = globals->input;
         input.prepare_for_update();
+        input.update();
 
         events::Event event;
         while (input.poll_events(event)) {
@@ -110,20 +111,12 @@ struct App : public core::App {
                         math::vec2((f32)event.wheel.x, (f32)event.wheel.y);
                     break;
                 case events::EventType::text_input:
-                    editor->handle_text(event.text.text[0]);
-                    break;
-                case events::EventType::text_editing:
-                    util::info("{} {} {} {}",
-                               event.edit.text,
-                               event.edit.type,
-                               event.edit.length,
-                               event.edit.timestamp);
+                    editor->handle_text(input, event.text.text[0]);
                     break;
                 default:
                     break;
             }
         }
-        input.update();
         // perform the input, update, and render
         this->input(dt);
         this->update(dt);

@@ -76,6 +76,19 @@ class GapBuffer {
         return true;
     }
 
+    i32 search(u32 start, const std::string &string) const {
+        // check if it's not out of bounds
+        if (start + string.length() >= length()) {
+            return -1;
+        }
+        for (u32 i = start; i < length(); ++i) {
+            if (compare(i, string.c_str(), string.length())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     u32 get_index_from_pointer(const char *ptr) const {
         u32 i = ptr - text;
         if (i > cursor()) {
