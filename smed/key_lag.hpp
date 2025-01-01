@@ -6,7 +6,9 @@
 #include "omega/events/event.hpp"
 #include "omega/events/input_manager.hpp"
 
-void register_key(omega::events::Key key, std::function<void()> callback);
+void register_key(
+    omega::events::Key key,
+    std::function<void(omega::events::InputManager &input)> callback);
 void update_keys(omega::events::InputManager &input);
 
 #endif // SMED_KEYLAG_HPP

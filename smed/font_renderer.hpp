@@ -7,6 +7,7 @@
 #include "omega/core/platform.hpp"
 #include "omega/gfx/gl.hpp"
 #include "omega/gfx/shader.hpp"
+#include "omega/gfx/shape_renderer.hpp"
 #include "omega/gfx/vertex_array.hpp"
 #include "omega/gfx/vertex_buffer.hpp"
 #include "omega/gfx/vertex_buffer_layout.hpp"
@@ -191,6 +192,62 @@ class FontRenderer {
         vao->unbind();
         vbo->unbind();
         shader->unbind();
+    }
+
+    void render_selected(omega::gfx::ShapeRenderer &shape,
+                         Font *font,
+                         GapBuffer &gap_buffer,
+                         i32 selection_start,
+                         const omega::math::vec2 &pos,
+                         f32 height) {
+        auto origin = pos;
+
+        f32 scale_factor = height / font->get_font_size();
+        // render the highlighted bits
+        omega::math::vec2 render_pos = pos;
+        if (selection_start > -1) {
+            i32 cursor_idx = gap_buffer.cursor();
+            // cursor is after selection start
+            if (cursor_idx > selection_start) {
+                for (i32 i = 0; i < cursor_idx; i++) {
+                    char c = gap_buffer.get(i);
+                    if (c == '\n') {
+                        render_pos.y -= font->get_font_height() * scale_factor;
+                        render_pos.x = origin.x;
+                        continue;
+                    }
+                    const auto &glyph = font->get_glyph(c);
+                    if (i >= selection_start) {
+                        shape.rect(
+                            {render_pos.x,
+                             render_pos.y -
+                                 font->get_font_height() * 0.2f * scale_factor,
+                             glyph.advance.x * scale_factor,
+                             (f32)font->get_font_height() * scale_factor});
+                    }
+                    render_pos.x += glyph.advance.x * scale_factor;
+                }
+            } else if (cursor_idx < selection_start) {
+                for (i32 i = 0; i < selection_start; i++) {
+                    char c = gap_buffer.get(i);
+                    if (c == '\n') {
+                        render_pos.y -= font->get_font_height() * scale_factor;
+                        render_pos.x = origin.x;
+                        continue;
+                    }
+                    const auto &glyph = font->get_glyph(c);
+                    if (i >= cursor_idx) {
+                        shape.rect(
+                            {render_pos.x,
+                             render_pos.y -
+                                 font->get_font_height() * 0.2f * scale_factor,
+                             glyph.advance.x * scale_factor,
+                             (f32)font->get_font_height() * scale_factor});
+                    }
+                    render_pos.x += glyph.advance.x * scale_factor;
+                }
+            }
+        }
     }
 
   private:

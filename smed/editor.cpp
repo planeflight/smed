@@ -9,6 +9,7 @@
 #include "omega/gfx/sprite_batch.hpp"
 #include "omega/ui/font.hpp"
 #include "omega/util/color.hpp"
+#include "omega/util/log.hpp"
 #include "omega/util/time.hpp"
 #include "smed/font_renderer.hpp"
 #include "smed/gap_buffer.hpp"
@@ -18,48 +19,54 @@
 Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
     : text(text.c_str()), lexer(&this->text, font), font_renderer(shader) {
     retokenize();
-    cursor_idx = text.length() - 1;
+    using namespace omega::events;
 
-    register_key(omega::events::Key::k_backspace, [&]() {
+    register_key(Key::k_backspace, [&](InputManager &input) {
         vertical_pos = -1;
-        // TODO: add a small input delay
         auto result = this->text.backspace_char();
         bool delete_line = std::get<0>(result);
         bool delete_char = std::get<1>(result);
         if (delete_line || delete_char) {
-            cursor_idx--;
             retokenize();
         }
     });
 
     // for any keys that are not up/down, reset the vertical pos
-    register_key(omega::events::Key::k_delete, [&]() {
+    register_key(Key::k_delete, [&](InputManager &input) {
         vertical_pos = -1;
         this->text.delete_char();
         retokenize();
     });
-    register_key(omega::events::Key::k_enter, [&]() {
+    register_key(Key::k_enter, [&](InputManager &input) {
         vertical_pos = -1;
         this->text.insert_char('\n');
         retokenize();
     });
     // INFO: need to retokenize because the buffer moves, so pointers need to
     // change
-    register_key(omega::events::Key::k_left, [&]() {
+    register_key(Key::k_left, [&](InputManager &input) {
         vertical_pos = -1;
         if (this->text.cursor() > 0) {
             this->text.move_buffer(false);
         }
+        // stop selecting
+        if (!input.key_manager.key_pressed(Key::k_l_shift)) {
+            selection_start = -1;
+        }
         retokenize();
     });
-    register_key(omega::events::Key::k_right, [&]() {
+    register_key(Key::k_right, [&](InputManager &input) {
         vertical_pos = -1;
         if (this->text.gap_end < this->text.end) {
             this->text.move_buffer(true);
         }
+        // stop selecting
+        if (!input.key_manager.key_pressed(Key::k_l_shift)) {
+            selection_start = -1;
+        }
         retokenize();
     });
-    register_key(omega::events::Key::k_up, [&]() {
+    register_key(Key::k_up, [&](InputManager &input) {
         // calcute the current line start and the previous line start
         u32 line_start = this->text.find_line_start(this->text.cursor());
         u32 prev_line_start = line_start; // both are 0 when line_start = 0
@@ -87,9 +94,13 @@ Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
         if (vertical_pos == -1) {
             vertical_pos = current_col;
         }
+        // stop selecting
+        if (!input.key_manager.key_pressed(Key::k_l_shift)) {
+            selection_start = -1;
+        }
         retokenize();
     });
-    register_key(omega::events::Key::k_down, [&]() {
+    register_key(Key::k_down, [&](InputManager &input) {
         u32 idx = this->text.find_line_end(this->text.cursor());
         if (idx == text.capacity()) {
             this->text.move_cursor_to(idx);
@@ -111,6 +122,11 @@ Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
         if (vertical_pos == -1) {
             vertical_pos = current_col;
         }
+        // stop selecting
+        if (!input.key_manager.key_pressed(Key::k_l_shift)) {
+            selection_start = -1;
+        }
+
         retokenize();
     });
 }
@@ -121,28 +137,28 @@ void Editor::render(Font *font,
     int i = 0;
     f32 height = font_render_height;
     f32 scale_factor = height / font->get_font_size();
-    font_renderer.begin();
-    auto pos = font_renderer.render(
-        font,
-        camera.get_view_projection_matrix(), // WARN: old view_proj should work
-                                             // as long as old render and new
-                                             // render happen in the same flush
-        text,
-        tokens,
-        {20, 800},
-        {20, 800},
-        height,
-        omega::util::color::white);
-    // calculate cursor pos
-    cursor_pos.bottom = {pos.x, pos.y};
-    cursor_pos.top = {pos.x, pos.y + height * 0.8};
 
-    // some camera panning action!
+    static omega::math::vec2 pos;
+
+    // some camera panning action! Recalculate the vp from the last frame pos
     omega::math::vec3 target_cam{0.0f};
     target_cam.x = pos.x - camera.get_width() * 0.25f;
     target_cam.y = pos.y - camera.get_height() * 0.5f;
     camera.position += (target_cam - camera.position) * 0.025f;
     camera.recalculate_view_matrix();
+
+    font_renderer.begin();
+    pos = font_renderer.render(font,
+                               camera.get_view_projection_matrix(),
+                               text,
+                               tokens,
+                               {20, 800},
+                               {20, 800},
+                               height,
+                               omega::util::color::white);
+    // calculate cursor pos
+    omega::math::vec2 cursor_pos_bottom = {pos.x, pos.y};
+    omega::math::vec2 cursor_pos_top = {pos.x, pos.y + height * 0.8};
 
     // render the text batch finally
     font_renderer.end(camera.get_view_projection_matrix());
@@ -151,19 +167,12 @@ void Editor::render(Font *font,
     shape.begin();
     shape.set_view_projection_matrix(camera.get_view_projection_matrix());
     shape.color = omega::util::color::white;
-    shape.line(cursor_pos.bottom, cursor_pos.top);
+    shape.line(cursor_pos_bottom, cursor_pos_top);
 
-    // draw the shift part
-    if (selection_start != -1) {
-        shape.color.a = 0.5f;
-        f32 width = cursor_pos.bottom.x - selection_start_pos.bottom.x;
-        shape.rect({
-            selection_start_pos.bottom.x,
-            selection_start_pos.bottom.y,
-            width,
-            font->get_font_height() * scale_factor * 0.8f,
-        });
-    }
+    // draw the selected text
+    shape.color.a = 0.5f;
+    font_renderer.render_selected(
+        shape, font, text, selection_start, {20, 800}, height);
     shape.end();
 }
 
@@ -191,33 +200,24 @@ void Editor::handle_text(omega::events::InputManager &input, char c) {
 void Editor::handle_input(omega::events::InputManager &input) {
     using namespace omega::events;
     auto &keys = input.key_manager;
-    // update the keys that require a lag
-    update_keys(input);
-
-    const auto update_selection = [&](bool shift, i32 dir) {
-        if (shift) {}
-    };
 
     if (keys[Key::k_l_ctrl] && keys[Key::k_s]) {
         save("./output.txt");
     }
-    // just pressed shift
-    if (keys.key_just_pressed(Key::k_l_shift)) {
-        selection_start = cursor_idx;
-        selection_start_pos = cursor_pos;
-    }
+
     if (keys[Key::k_l_shift]) {
-        if (keys[Key::k_left]) selection_size--;
-        // else
-        // selection_start = -1;
-        if (keys[Key::k_right]) selection_size++;
-        // else
-        // selection_start = -1;
+        if (keys[Key::k_left] || keys[Key::k_right] || keys[Key::k_up] ||
+            keys[Key::k_down]) {
+            if (selection_start == -1) {
+                selection_start = text.cursor();
+            }
+        }
     }
-    // if not pressed and there's no selection
-    if (!keys[Key::k_l_shift] && selection_size == 0) {
-        selection_start = -1;
-    }
+    // update the keys that require a lag
+    // INFO: update_keys AFTER querying selection state to track the old cursor
+    // before selecting even started
+    update_keys(input);
+
     // search functionality
     if (keys[Key::k_l_ctrl] && keys[Key::k_f]) {
         u32 s = text.search(text.cursor(), "void");

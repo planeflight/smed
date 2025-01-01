@@ -2,6 +2,13 @@
 
 The Smooth Lightweight editor that runs **SM**ooth like a **SM**oothie.
 
+## Features:
+
+- Buttery **sm**ooth navigation and camera panning!
+- No Mouse -> Training you to finally switch to VIM
+- Copy/Paste
+- Syntax Highlighting in C/C++
+
 Here are some interesting reference papers/articles:
 
 ## Text Sequences & Buffers

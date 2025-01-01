@@ -34,17 +34,11 @@ class Editor {
     GapBuffer text;
     Lexer lexer;
     std::vector<Token> tokens;
-    u32 cursor_idx;
     i32 vertical_pos = -1; // represents the initial up/down cursor column, -1
                            // when none has been initiated
     FontRenderer font_renderer;
 
-    struct CursorPos {
-        omega::math::vec2 bottom, top;
-    } cursor_pos, selection_start_pos;
-
     i32 selection_start = -1; // -1 represents no selection
-    i32 selection_size = 0;   // can be forwards/backwards
     enum class Mode { EDITING = 0, SEARCHING } mode = Mode::EDITING;
     f32 font_render_height = 25.0f;
 };
