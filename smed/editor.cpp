@@ -24,18 +24,7 @@ Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
     register_key(Key::k_backspace, [&](InputManager &input) {
         vertical_pos = -1;
         if (selection_start > -1) {
-            if (selection_start < this->text.cursor()) {
-                while (this->text.cursor() != selection_start) {
-                    this->text.backspace_char();
-                }
-                selection_start = -1;
-            } else if (selection_start > this->text.cursor()) {
-                while (this->text.cursor() != selection_start) {
-                    this->text.delete_char();
-                    selection_start--;
-                }
-                selection_start = -1;
-            }
+            backspace();
         } else {
             this->text.backspace_char();
         }
@@ -46,18 +35,7 @@ Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
     register_key(Key::k_delete, [&](InputManager &input) {
         vertical_pos = -1;
         if (selection_start > -1) {
-            if (selection_start < this->text.cursor()) {
-                while (this->text.cursor() != selection_start) {
-                    this->text.backspace_char();
-                }
-                selection_start = -1;
-            } else if (selection_start > this->text.cursor()) {
-                while (this->text.cursor() != selection_start) {
-                    this->text.delete_char();
-                    selection_start--;
-                }
-                selection_start = -1;
-            }
+            backspace();
         } else {
             this->text.delete_char();
         }
@@ -65,6 +43,9 @@ Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
     });
     register_key(Key::k_enter, [&](InputManager &input) {
         vertical_pos = -1;
+        if (selection_start > -1) {
+            backspace();
+        }
         this->text.insert_char('\n');
         retokenize();
     });
@@ -218,6 +199,9 @@ void Editor::handle_text(omega::events::InputManager &input, char c) {
     auto &keys = input.key_manager;
     // lock the text when ctrl is pressed
     if (!keys[omega::events::Key::k_l_ctrl]) {
+        if (selection_start > -1) {
+            backspace();
+        }
         text.insert_char(c);
         retokenize();
     }
@@ -273,5 +257,20 @@ void Editor::retokenize() {
         tokens.push_back(token);
         u32 idx = text.get_index_from_pointer(token.text);
         token = lexer.next();
+    }
+}
+
+void Editor::backspace() {
+    if (selection_start < this->text.cursor()) {
+        while (this->text.cursor() != selection_start) {
+            this->text.backspace_char();
+        }
+        selection_start = -1;
+    } else if (selection_start > this->text.cursor()) {
+        while (this->text.cursor() != selection_start) {
+            this->text.delete_char();
+            selection_start--;
+        }
+        selection_start = -1;
     }
 }

@@ -30,6 +30,7 @@ class Editor {
 
   private:
     void retokenize();
+    void backspace();
 
     GapBuffer text;
     Lexer lexer;
