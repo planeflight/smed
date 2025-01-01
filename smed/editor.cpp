@@ -23,18 +23,44 @@ Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
 
     register_key(Key::k_backspace, [&](InputManager &input) {
         vertical_pos = -1;
-        auto result = this->text.backspace_char();
-        bool delete_line = std::get<0>(result);
-        bool delete_char = std::get<1>(result);
-        if (delete_line || delete_char) {
-            retokenize();
+        if (selection_start > -1) {
+            if (selection_start < this->text.cursor()) {
+                while (this->text.cursor() != selection_start) {
+                    this->text.backspace_char();
+                }
+                selection_start = -1;
+            } else if (selection_start > this->text.cursor()) {
+                while (this->text.cursor() != selection_start) {
+                    this->text.delete_char();
+                    selection_start--;
+                }
+                selection_start = -1;
+            }
+        } else {
+            this->text.backspace_char();
         }
+        retokenize();
     });
 
     // for any keys that are not up/down, reset the vertical pos
     register_key(Key::k_delete, [&](InputManager &input) {
         vertical_pos = -1;
-        this->text.delete_char();
+        if (selection_start > -1) {
+            if (selection_start < this->text.cursor()) {
+                while (this->text.cursor() != selection_start) {
+                    this->text.backspace_char();
+                }
+                selection_start = -1;
+            } else if (selection_start > this->text.cursor()) {
+                while (this->text.cursor() != selection_start) {
+                    this->text.delete_char();
+                    selection_start--;
+                }
+                selection_start = -1;
+            }
+        } else {
+            this->text.delete_char();
+        }
         retokenize();
     });
     register_key(Key::k_enter, [&](InputManager &input) {
