@@ -11,24 +11,35 @@
 #include "omega/util/color.hpp"
 #include "omega/util/log.hpp"
 #include "omega/util/time.hpp"
-#include "smed/font_renderer.hpp"
+#include "smed/buffer_renderer.hpp"
 #include "smed/gap_buffer.hpp"
 #include "smed/key_lag.hpp"
 #include "smed/lexer.hpp"
 
-Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
-    : text(text.c_str()), lexer(&this->text, font), font_renderer(shader) {
+Editor::Editor(omega::gfx::Shader *shader,
+               omega::gfx::Shader *shader_search,
+               Font *font,
+               const std::string &text)
+    : text(text.c_str()),
+      lexer(&this->text, font),
+      font_renderer(shader),
+      search_renderer(shader_search) {
     using namespace omega::events;
     retokenize();
 
+    // register all the keys that depend on a lag
     register_key(Key::k_backspace, [&](InputManager &input) {
-        vertical_pos = -1;
-        if (selection_start > -1) {
-            backspace();
+        if (mode == Mode::EDITING) {
+            vertical_pos = -1;
+            if (selection_start > -1) {
+                backspace();
+            } else {
+                this->text.backspace_char();
+            }
+            retokenize();
         } else {
-            this->text.backspace_char();
+            if (search_text.length() > 0) search_text.pop_back();
         }
-        retokenize();
     });
 
     // for any keys that are not up/down, reset the vertical pos
@@ -42,12 +53,17 @@ Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
         retokenize();
     });
     register_key(Key::k_enter, [&](InputManager &input) {
-        vertical_pos = -1;
-        if (selection_start > -1) {
-            backspace();
+        if (mode == Mode::EDITING) {
+            vertical_pos = -1;
+            if (selection_start > -1) {
+                backspace();
+            }
+            this->text.insert_char('\n');
+            retokenize();
+        } else {
+            u32 s = this->text.search(this->text.cursor(), search_text);
+            OMEGA_DEBUG("Found {} at {}", search_text, s);
         }
-        this->text.insert_char('\n');
-        retokenize();
     });
     // INFO: need to retokenize because the buffer moves, so pointers need to
     // change
@@ -184,25 +200,22 @@ void Editor::render(Font *font,
     shape.end();
 
     if (mode == Mode::SEARCHING) {
+        auto corner = omega::math::vec2{camera.get_width() - 300.0f,
+                                        camera.get_height() - 40.0f};
         shape.begin();
         shape.set_view_projection_matrix(camera.get_projection_matrix());
         shape.color = omega::util::color::black;
-        shape.rect({camera.get_width() - 300.0f,
-                    camera.get_height() - height * 2.0f,
-                    300.0f,
-                    height * 2.0f});
+        shape.rect({corner.x, corner.y, 300.0f, 60.0f});
         shape.end();
 
-        batch.set_view_projection_matrix(camera.get_projection_matrix());
-        batch.begin_render();
-        font->render(
-            batch,
-            search_text.c_str(),
-            search_text.length(),
-            {camera.get_width() - 300.0f, camera.get_height() - height * 2.0f},
-            height * 1.5f,
-            omega::util::color::white);
-        batch.end_render();
+        search_renderer.set_view_proj_matrix(camera.get_projection_matrix());
+        search_renderer.begin();
+        search_renderer.render(font,
+                               search_text,
+                               {corner.x + 10.0f, corner.y + 10.0f},
+                               20.0f,
+                               omega::util::color::white);
+        search_renderer.end();
     }
 }
 
@@ -257,9 +270,12 @@ void Editor::handle_input(omega::events::InputManager &input) {
     // search functionality
     if (keys[Key::k_l_ctrl] && keys[Key::k_f]) {
         mode = Mode::SEARCHING;
-        u32 s = text.search(text.cursor(), "void");
-        OMEGA_DEBUG("Found {} at {}", "void", s);
     }
+    // escape search functionality
+    if (keys[Key::k_escape] && mode == Mode::SEARCHING) {
+        mode = Mode::EDITING;
+    }
+
     // zooming
     if (keys[Key::k_l_ctrl] && keys[Key::k_minus]) {
         font_render_height -= 5;

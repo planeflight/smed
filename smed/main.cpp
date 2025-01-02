@@ -25,6 +25,8 @@ struct App : public core::App {
             0.0f, 1600.0f, 0.0f, 900.0f, -1.0f, 1.0f);
 
         globals->asset_manager.load_shader("font", "./res/shaders/font.glsl");
+        globals->asset_manager.load_shader("classic_font",
+                                           "./res/shaders/classic_font.glsl");
 
         globals->asset_manager.load_font("font",
                                          "./res/font/press2p.png",
@@ -40,7 +42,10 @@ struct App : public core::App {
                             (std::istreambuf_iterator<char>()));
 
         editor = util::create_uptr<Editor>(
-            globals->asset_manager.get_shader("font"), font.get(), content);
+            globals->asset_manager.get_shader("font"),
+            globals->asset_manager.get_shader("classic_font"),
+            font.get(),
+            content);
 
         std::vector<gfx::FrameBufferAttachment> attachments;
         attachments.push_back({
@@ -78,7 +83,7 @@ struct App : public core::App {
 
     void input(f32 dt) override {
         auto &keys = globals->input.key_manager;
-        if (keys[events::Key::k_escape]) {
+        if (keys[events::Key::k_l_ctrl] && keys[events::Key::k_q]) {
             running = false;
         }
         editor->handle_input(globals->input);
