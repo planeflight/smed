@@ -29,24 +29,21 @@ out vec4 color;
 uniform sampler2D u_texture;
 uniform float u_time;
 
-vec3 hsl2rgb(vec3 c) {
-    vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0);
-    return c.z + c.y * (rgb-0.5)*(1.0-abs(2.0*c.z-1.0));
-}
-
 void main() {
     float r = texture(u_texture, v_tex_coords).r;
     if (r == 0.) {
         discard;
     } else {
-        // float sin_t = sin(u_time);
+        float sin_t = sin(u_time + v_uv.x * 10.0);
+        float cos_t = cos(u_time + v_uv.y * 10.0);
         color = vec4(vec3(r), 1.) * v_color;
-        color.a = 1.0;
-        // color.rgb = hsl2rgb(vec3((u_time + v_uv.x + v_uv.y), 0.5, 0.5));
-        // color.rgb *= v_color.rgb;
-        // color.r += sin_t * 0.2;
-        // color.g -= v_uv.x * sin_t * 0.2;
-        // color.b += v_uv.y * sin_t * 0.4;
-        // color.b *= color.b;
+        if (v_color == vec4(1.0)) {
+            color.rgb = vec3(
+                0.3 + sin_t * 0.5 + 0.5,
+                0.4 + cos_t * 0.5 + 0.5,
+                0.4
+            );
+            color.a = 1.0;
+        }
     }
 }
