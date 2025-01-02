@@ -41,7 +41,7 @@ void main() {
             color.rgb = vec3(
                 0.3 + sin_t * 0.5 + 0.5,
                 0.4 + cos_t * 0.5 + 0.5,
-                0.4
+                0.4 + cos_t * sin_t
             );
             color.a = 1.0;
         }
