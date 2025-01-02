@@ -8,11 +8,9 @@
 #include "omega/gfx/frame_buffer.hpp"
 #include "omega/gfx/gl.hpp"
 #include "omega/scene/orthographic_camera.hpp"
-#include "omega/ui/font_characters.hpp"
 #include "omega/util/std.hpp"
 #include "smed/editor.hpp"
 #include "smed/font.hpp"
-#include "smed/lexer.hpp"
 
 using namespace omega;
 
@@ -28,10 +26,6 @@ struct App : public core::App {
         globals->asset_manager.load_shader("classic_font",
                                            "./res/shaders/classic_font.glsl");
 
-        globals->asset_manager.load_font("font",
-                                         "./res/font/press2p.png",
-                                         ui::font_characters::press_start_2p,
-                                         8);
         SDL_StartTextInput(window->get_native_window());
         Font::init();
         font = util::create_uptr<Font>(
@@ -68,15 +62,10 @@ struct App : public core::App {
         gfx::clear_buffer(OMEGA_GL_COLOR_BUFFER_BIT);
         cam->recalculate_view_matrix();
 
-        // ui::Font *font = globals->asset_manager.get_font("font");
         auto &batch = globals->sprite_batch;
         auto &shape = globals->shape_renderer;
 
-        // batch.set_view_projection_matrix(cam->get_view_projection_matrix());
-        // batch.begin_render();
         editor->render(font.get(), *cam, batch, shape);
-        // batch.end_render();
-        // ImGui::ShowDemoWindow();
     }
 
     void update(f32 dt) override {}

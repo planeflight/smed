@@ -61,8 +61,16 @@ Editor::Editor(omega::gfx::Shader *shader,
             this->text.insert_char('\n');
             retokenize();
         } else {
-            u32 s = this->text.search(this->text.cursor(), search_text);
-            OMEGA_DEBUG("Found {} at {}", search_text, s);
+            i32 s = this->text.search(this->text.cursor(), search_text);
+            // re-search if it's the 2nd time we're searching
+            if (s == this->text.cursor() &&
+                this->text.cursor() < this->text.length()) {
+                s = this->text.search(this->text.cursor() + 1, search_text);
+            }
+            if (s != -1) {
+                this->text.move_cursor_to(s);
+                retokenize();
+            }
         }
     });
     // INFO: need to retokenize because the buffer moves, so pointers need to
@@ -80,7 +88,7 @@ Editor::Editor(omega::gfx::Shader *shader,
     });
     register_key(Key::k_right, [&](InputManager &input) {
         vertical_pos = -1;
-        if (this->text.gap_end < this->text.end) {
+        if (this->text.buff2() < this->text.tail()) {
             this->text.move_buffer(true);
         }
         // stop selecting
@@ -125,7 +133,7 @@ Editor::Editor(omega::gfx::Shader *shader,
     });
     register_key(Key::k_down, [&](InputManager &input) {
         u32 idx = this->text.find_line_end(this->text.cursor());
-        if (idx == text.capacity()) {
+        if (idx == text.length()) {
             this->text.move_cursor_to(idx);
             return;
         }
@@ -211,6 +219,11 @@ void Editor::render(Font *font,
         search_renderer.set_view_proj_matrix(camera.get_projection_matrix());
         search_renderer.begin();
         search_renderer.render(font,
+                               "Search: ",
+                               {corner.x - 75.0f, corner.y + 10.0f},
+                               15.0f,
+                               {0.5f, 0.5f, 0.5f, 1.0f});
+        search_renderer.render(font,
                                search_text,
                                {corner.x + 10.0f, corner.y + 10.0f},
                                20.0f,
@@ -226,8 +239,8 @@ void Editor::save(const std::string &file) {
         OMEGA_ERROR("Failed to open file: '{}'", file);
     }
 
-    of.write(text.text, text.buff1_size() + text.gap_idx);
-    of.write(text.gap_end, text.buff2_size());
+    of.write(text.head(), text.cursor());
+    of.write(text.buff2(), text.buff2_size());
     of.close();
 }
 
@@ -289,6 +302,29 @@ void Editor::handle_input(omega::events::InputManager &input) {
             font_render_height = 80.0f;
         }
     }
+    // clipboard functionality
+    // copy
+    if ((keys.key_just_pressed(Key::k_l_ctrl) && keys[Key::k_c]) ||
+        (keys.key_just_pressed(Key::k_c) && keys[Key::k_l_ctrl])) {
+        copy_to_clipboard();
+    }
+    // cut
+    if ((keys.key_just_pressed(Key::k_l_ctrl) && keys[Key::k_x]) ||
+        (keys.key_just_pressed(Key::k_x) && keys[Key::k_l_ctrl])) {
+        copy_to_clipboard();
+        if (selection_start > -1) {
+            backspace();
+            retokenize();
+        }
+    }
+    // paste
+    if ((keys.key_just_pressed(Key::k_l_ctrl) && keys[Key::k_v]) ||
+        (keys.key_just_pressed(Key::k_v) && keys[Key::k_l_ctrl])) {
+        for (const auto &c : clipboard.text) {
+            text.insert_char(c);
+        }
+        retokenize();
+    }
 }
 
 void Editor::retokenize() {
@@ -298,7 +334,6 @@ void Editor::retokenize() {
     Token token = lexer.next();
     while (token.type != TokenType::END) {
         tokens.push_back(token);
-        u32 idx = text.get_index_from_pointer(token.text);
         token = lexer.next();
     }
 }
@@ -315,5 +350,19 @@ void Editor::backspace() {
             selection_start--;
         }
         selection_start = -1;
+    }
+}
+
+void Editor::copy_to_clipboard() {
+    // save substring to clipboard
+    if (selection_start != -1) {
+        if (selection_start > text.cursor()) {
+            clipboard.text =
+                text.substr(text.cursor(), selection_start - text.cursor());
+        } else {
+            clipboard.text =
+                text.substr(selection_start, text.cursor() - selection_start);
+        }
+        // OMEGA_DEBUG("{}", clipboard.text);
     }
 }

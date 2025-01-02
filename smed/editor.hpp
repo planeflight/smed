@@ -2,6 +2,7 @@
 #define SMED_EDITOR_HPP
 
 #include <cstring>
+#include <string>
 #include <vector>
 
 #include "omega/core/globals.hpp"
@@ -36,6 +37,7 @@ class Editor {
   private:
     void retokenize();
     void backspace();
+    void copy_to_clipboard();
 
     GapBuffer text;
     Lexer lexer;
@@ -52,6 +54,10 @@ class Editor {
     enum class Mode { EDITING = 0, SEARCHING } mode = Mode::EDITING;
     std::string search_text;
     FontRenderer search_renderer;
+
+    struct {
+        std::string text;
+    } clipboard;
 };
 
 #endif // SMED_EDITOR_HPP

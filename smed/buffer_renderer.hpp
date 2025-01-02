@@ -166,8 +166,8 @@ class BufferRenderer {
 
         // calculate cursor pos
         omega::math::vec2 cursor = pos;
-        for (u32 i = 0; i < gap_buffer.buff1_size() + gap_buffer.gap_idx; ++i) {
-            char c = gap_buffer.text[i];
+        for (u32 i = 0; i < gap_buffer.cursor(); ++i) {
+            char c = gap_buffer.get(i);
             if (c == '\n') {
                 cursor.y -= font->get_font_height() * scale_factor;
                 cursor.x = origin.x;
