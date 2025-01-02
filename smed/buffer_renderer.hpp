@@ -2,18 +2,18 @@
 #define SMED_BUFFERRENDERER_HPP
 
 #include <cstring>
+#include <omega/core/platform.hpp>
+#include <omega/gfx/gl.hpp>
+#include <omega/gfx/shader.hpp>
+#include <omega/gfx/shape_renderer.hpp>
+#include <omega/gfx/vertex_array.hpp>
+#include <omega/gfx/vertex_buffer.hpp>
+#include <omega/gfx/vertex_buffer_layout.hpp>
+#include <omega/util/color.hpp>
+#include <omega/util/std.hpp>
+#include <omega/util/time.hpp>
 #include <vector>
 
-#include "omega/core/platform.hpp"
-#include "omega/gfx/gl.hpp"
-#include "omega/gfx/shader.hpp"
-#include "omega/gfx/shape_renderer.hpp"
-#include "omega/gfx/vertex_array.hpp"
-#include "omega/gfx/vertex_buffer.hpp"
-#include "omega/gfx/vertex_buffer_layout.hpp"
-#include "omega/util/color.hpp"
-#include "omega/util/std.hpp"
-#include "omega/util/time.hpp"
 #include "smed/font.hpp"
 #include "smed/gap_buffer.hpp"
 #include "smed/lexer.hpp"

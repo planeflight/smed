@@ -2,15 +2,15 @@
 
 #include <cstring>
 #include <fstream>
+#include <omega/core/error.hpp>
+#include <omega/events/event.hpp>
+#include <omega/gfx/shader.hpp>
+#include <omega/gfx/sprite_batch.hpp>
+#include <omega/ui/font.hpp>
+#include <omega/util/color.hpp>
+#include <omega/util/log.hpp>
+#include <omega/util/time.hpp>
 
-#include "omega/core/error.hpp"
-#include "omega/events/event.hpp"
-#include "omega/gfx/shader.hpp"
-#include "omega/gfx/sprite_batch.hpp"
-#include "omega/ui/font.hpp"
-#include "omega/util/color.hpp"
-#include "omega/util/log.hpp"
-#include "omega/util/time.hpp"
 #include "smed/buffer_renderer.hpp"
 #include "smed/gap_buffer.hpp"
 #include "smed/key_lag.hpp"

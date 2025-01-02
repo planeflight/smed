@@ -1,11 +1,12 @@
 #ifndef SMED_FONTRENDERER_HPP
 #define SMED_FONTRENDERER_HPP
 
-#include "omega/gfx/gl.hpp"
-#include "omega/gfx/shader.hpp"
-#include "omega/gfx/vertex_array.hpp"
-#include "omega/gfx/vertex_buffer.hpp"
-#include "omega/util/color.hpp"
+#include <omega/gfx/gl.hpp>
+#include <omega/gfx/shader.hpp>
+#include <omega/gfx/vertex_array.hpp>
+#include <omega/gfx/vertex_buffer.hpp>
+#include <omega/util/color.hpp>
+
 #include "smed/font.hpp"
 
 class FontRenderer {

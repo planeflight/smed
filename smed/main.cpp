@@ -2,13 +2,14 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_sdl3.h>
 
-#include "omega/core/core.hpp"
-#include "omega/core/engine_core.hpp"
-#include "omega/events/event.hpp"
-#include "omega/gfx/frame_buffer.hpp"
-#include "omega/gfx/gl.hpp"
-#include "omega/scene/orthographic_camera.hpp"
-#include "omega/util/std.hpp"
+#include <omega/core/core.hpp>
+#include <omega/core/engine_core.hpp>
+#include <omega/events/event.hpp>
+#include <omega/gfx/frame_buffer.hpp>
+#include <omega/gfx/gl.hpp>
+#include <omega/scene/orthographic_camera.hpp>
+#include <omega/util/std.hpp>
+
 #include "smed/editor.hpp"
 #include "smed/font.hpp"
 

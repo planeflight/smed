@@ -1,8 +1,7 @@
 #include "key_lag.hpp"
 
+#include <omega/util/time.hpp>
 #include <vector>
-
-#include "omega/util/time.hpp"
 
 struct KeyLag {
     omega::events::Key key;

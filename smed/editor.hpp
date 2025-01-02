@@ -2,16 +2,16 @@
 #define SMED_EDITOR_HPP
 
 #include <cstring>
+#include <omega/core/globals.hpp>
+#include <omega/events/input_manager.hpp>
+#include <omega/gfx/shader.hpp>
+#include <omega/gfx/shape_renderer.hpp>
+#include <omega/gfx/sprite_batch.hpp>
+#include <omega/scene/orthographic_camera.hpp>
+#include <omega/util/types.hpp>
 #include <string>
 #include <vector>
 
-#include "omega/core/globals.hpp"
-#include "omega/events/input_manager.hpp"
-#include "omega/gfx/shader.hpp"
-#include "omega/gfx/shape_renderer.hpp"
-#include "omega/gfx/sprite_batch.hpp"
-#include "omega/scene/orthographic_camera.hpp"
-#include "omega/util/types.hpp"
 #include "smed/buffer_renderer.hpp"
 #include "smed/font.hpp"
 #include "smed/font_renderer.hpp"

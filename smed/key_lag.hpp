@@ -2,9 +2,8 @@
 #define SMED_KEYLAG_HPP
 
 #include <functional>
-
-#include "omega/events/event.hpp"
-#include "omega/events/input_manager.hpp"
+#include <omega/events/event.hpp>
+#include <omega/events/input_manager.hpp>
 
 void register_key(
     omega::events::Key key,

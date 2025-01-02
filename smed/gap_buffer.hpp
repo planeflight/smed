@@ -3,9 +3,8 @@
 
 #include <cstring>
 #include <iostream>
+#include <omega/util/types.hpp>
 #include <utility>
-
-#include "omega/util/types.hpp"
 
 class GapBuffer {
   public:

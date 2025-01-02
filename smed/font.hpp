@@ -2,17 +2,17 @@
 #define SMED_FONT_HPP
 
 #include <iostream>
+#include <omega/core/platform.hpp>
+#include <omega/gfx/sprite_batch.hpp>
+#include <omega/gfx/texture/texture.hpp>
+#include <omega/util/std.hpp>
 #include <string>
 
 #include "ft2build.h"
-#include "omega/core/platform.hpp"
-#include "omega/gfx/sprite_batch.hpp"
-#include "omega/gfx/texture/texture.hpp"
-#include "omega/util/std.hpp"
 #include FT_FREETYPE_H
-#include "omega/math/math.hpp"
-#include "omega/util/log.hpp"
-#include "omega/util/types.hpp"
+#include <omega/math/math.hpp>
+#include <omega/util/log.hpp>
+#include <omega/util/types.hpp>
 
 struct Glyph {
     omega::math::vec2 offset;
