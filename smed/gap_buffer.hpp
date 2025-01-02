@@ -41,6 +41,16 @@ class GapBuffer {
     u32 cursor() const {
         return buff1_size() + gap_idx;
     }
+    const char *head() const {
+        return text;
+    }
+
+    const char *buff2() const {
+        return gap_end;
+    }
+    const char *tail() const {
+        return end;
+    }
     bool is_keyword(char *keyword, u32 start, u32 len) const {
         if (start + len < total_length) {
             i32 res = strncmp(keyword, text + start, len);
@@ -97,6 +107,19 @@ class GapBuffer {
         return i;
     }
 
+    u32 find_line_start(u32 reverse_start) const {
+        while (reverse_start > 0 && get(reverse_start - 1) != '\n')
+            reverse_start--;
+        return reverse_start;
+    }
+    u32 find_line_end(u32 forward_start) const {
+        while (forward_start < length() && get(forward_start) != '\n') {
+            forward_start++;
+        }
+        return forward_start;
+    }
+
+  private:
     char *text;
     char *end;
 
@@ -107,23 +130,6 @@ class GapBuffer {
     const u32 add_gap_length = 8;
     // track where the gap characters are used
     u32 gap_idx = 0; // represents the cursor
-
-    u32 find_line_start(u32 reverse_start) const {
-        // we ignore the gap buffer because the cursor will always be before it
-        while (reverse_start > 0 && text[reverse_start - 1] != '\n')
-            reverse_start--;
-        return reverse_start;
-    }
-    u32 find_line_end(u32 forward_start) const {
-        // if before the gap, i.e. when cursor pos is given, skip to gap end
-        if (text + forward_start < gap_end) {
-            forward_start = gap_end - text;
-        }
-        while (forward_start < total_length && text[forward_start] != '\n') {
-            forward_start++;
-        }
-        return forward_start;
-    }
 };
 
 #endif // SMED_GAPBUFFER_HPP

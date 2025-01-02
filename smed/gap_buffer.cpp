@@ -58,13 +58,10 @@ void GapBuffer::insert_char(char c) {
 void GapBuffer::move_cursor_to(u32 new_pos) {
     i32 steps = (i32)new_pos - cursor();
     if (steps > 0) {
-        // need to skip over the gap, then move the buffer/cursor
-        steps -= gap_length - gap_idx;
         for (int i = 0; i < steps; ++i) {
             move_buffer(true);
         }
     } else {
-        // since this is all before the buffer (left), we ignore gap buffer
         steps *= -1;
         for (int i = 0; i < steps; ++i) {
             move_buffer(false);
