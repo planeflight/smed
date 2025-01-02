@@ -69,7 +69,7 @@ struct App : public core::App {
 
         // batch.set_view_projection_matrix(cam->get_view_projection_matrix());
         // batch.begin_render();
-        editor->render(font.get(), *cam, globals->shape_renderer);
+        editor->render(font.get(), *cam, batch, shape);
         // batch.end_render();
         // ImGui::ShowDemoWindow();
     }

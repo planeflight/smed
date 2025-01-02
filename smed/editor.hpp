@@ -22,6 +22,7 @@ class Editor {
 
     void render(Font *font,
                 omega::scene::OrthographicCamera &camera,
+                omega::gfx::SpriteBatch &batch,
                 omega::gfx::ShapeRenderer &shape);
     void save(const std::string &file);
 
@@ -40,8 +41,11 @@ class Editor {
     FontRenderer font_renderer;
 
     i32 selection_start = -1; // -1 represents no selection
-    enum class Mode { EDITING = 0, SEARCHING } mode = Mode::EDITING;
     f32 font_render_height = 25.0f;
+
+    // searching
+    enum class Mode { EDITING = 0, SEARCHING } mode = Mode::EDITING;
+    std::string search_text;
 };
 
 #endif // SMED_EDITOR_HPP

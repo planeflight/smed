@@ -18,8 +18,8 @@
 
 Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
     : text(text.c_str()), lexer(&this->text, font), font_renderer(shader) {
-    retokenize();
     using namespace omega::events;
+    retokenize();
 
     register_key(Key::k_backspace, [&](InputManager &input) {
         vertical_pos = -1;
@@ -140,6 +140,7 @@ Editor::Editor(omega::gfx::Shader *shader, Font *font, const std::string &text)
 
 void Editor::render(Font *font,
                     omega::scene::OrthographicCamera &camera,
+                    omega::gfx::SpriteBatch &batch,
                     omega::gfx::ShapeRenderer &shape) {
     int i = 0;
     f32 height = font_render_height;
@@ -159,8 +160,8 @@ void Editor::render(Font *font,
                                camera.get_view_projection_matrix(),
                                text,
                                tokens,
-                               {20, 800},
-                               {20, 800},
+                               {0, 0},
+                               {0, 0},
                                height,
                                omega::util::color::white);
     // calculate cursor pos
@@ -179,8 +180,30 @@ void Editor::render(Font *font,
     // draw the selected text
     shape.color.a = 0.5f;
     font_renderer.render_selected(
-        shape, font, text, selection_start, {20, 800}, height);
+        shape, font, text, selection_start, {0, 0}, height);
     shape.end();
+
+    if (mode == Mode::SEARCHING) {
+        shape.begin();
+        shape.set_view_projection_matrix(camera.get_projection_matrix());
+        shape.color = omega::util::color::black;
+        shape.rect({camera.get_width() - 300.0f,
+                    camera.get_height() - height * 2.0f,
+                    300.0f,
+                    height * 2.0f});
+        shape.end();
+
+        batch.set_view_projection_matrix(camera.get_projection_matrix());
+        batch.begin_render();
+        font->render(
+            batch,
+            search_text.c_str(),
+            search_text.length(),
+            {camera.get_width() - 300.0f, camera.get_height() - height * 2.0f},
+            height * 1.5f,
+            omega::util::color::white);
+        batch.end_render();
+    }
 }
 
 void Editor::save(const std::string &file) {
@@ -197,13 +220,17 @@ void Editor::save(const std::string &file) {
 
 void Editor::handle_text(omega::events::InputManager &input, char c) {
     auto &keys = input.key_manager;
-    // lock the text when ctrl is pressed
-    if (!keys[omega::events::Key::k_l_ctrl]) {
-        if (selection_start > -1) {
-            backspace();
+    if (mode == Mode::SEARCHING) {
+        search_text.push_back(c);
+    } else {
+        // lock the text when ctrl is pressed
+        if (!keys[omega::events::Key::k_l_ctrl]) {
+            if (selection_start > -1) {
+                backspace();
+            }
+            text.insert_char(c);
+            retokenize();
         }
-        text.insert_char(c);
-        retokenize();
     }
 }
 
@@ -223,13 +250,13 @@ void Editor::handle_input(omega::events::InputManager &input) {
             }
         }
     }
-    // update the keys that require a lag
-    // INFO: update_keys AFTER querying selection state to track the old cursor
-    // before selecting even started
+    // INFO: update_keys that require a lag AFTER querying selection state to
+    // track the old cursor before selecting even started
     update_keys(input);
 
     // search functionality
     if (keys[Key::k_l_ctrl] && keys[Key::k_f]) {
+        mode = Mode::SEARCHING;
         u32 s = text.search(text.cursor(), "void");
         OMEGA_DEBUG("Found {} at {}", "void", s);
     }
