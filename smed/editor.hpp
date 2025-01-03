@@ -54,10 +54,6 @@ class Editor {
     enum class Mode { EDITING = 0, SEARCHING } mode = Mode::EDITING;
     std::string search_text;
     FontRenderer search_renderer;
-
-    struct {
-        std::string text;
-    } clipboard;
 };
 
 #endif // SMED_EDITOR_HPP

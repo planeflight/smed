@@ -320,9 +320,13 @@ void Editor::handle_input(omega::events::InputManager &input) {
     // paste
     if ((keys.key_just_pressed(Key::k_l_ctrl) && keys[Key::k_v]) ||
         (keys.key_just_pressed(Key::k_v) && keys[Key::k_l_ctrl])) {
-        for (const auto &c : clipboard.text) {
+        char *paste = SDL_GetClipboardText();
+        u32 len = strlen(paste);
+        for (u32 i = 0; i < len; ++i) {
+            const auto &c = paste[i];
             text.insert_char(c);
         }
+        SDL_free(paste);
         retokenize();
     }
 }
@@ -357,12 +361,13 @@ void Editor::copy_to_clipboard() {
     // save substring to clipboard
     if (selection_start != -1) {
         if (selection_start > text.cursor()) {
-            clipboard.text =
-                text.substr(text.cursor(), selection_start - text.cursor());
+            SDL_SetClipboardText(
+                text.substr(text.cursor(), selection_start - text.cursor())
+                    .c_str());
         } else {
-            clipboard.text =
-                text.substr(selection_start, text.cursor() - selection_start);
+            SDL_SetClipboardText(
+                text.substr(selection_start, text.cursor() - selection_start)
+                    .c_str());
         }
-        // OMEGA_DEBUG("{}", clipboard.text);
     }
 }
