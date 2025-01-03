@@ -117,6 +117,32 @@ class GapBuffer {
         }
         return forward_start;
     }
+    u32 find_next_word(u32 i) const {
+        // check if start is a word sequence or a special character sequence
+        if (isalnum(get(i))) {
+            while (i < length() && isalnum(get(i))) {
+                i++;
+            }
+            return i;
+        }
+        while (i < length() && !isalnum(get(i))) {
+            i++;
+        }
+        return i;
+    }
+
+    u32 find_prev_word(i32 i) const {
+        if (isalnum(get(i))) {
+            while (i > 0 && isalnum(get(i))) {
+                i--;
+            }
+            return i + 1;
+        }
+        while (i > 0 && !isalnum(get(i))) {
+            i--;
+        }
+        return i + 1;
+    }
 
   private:
     char *text;

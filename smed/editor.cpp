@@ -84,6 +84,13 @@ Editor::Editor(omega::gfx::Shader *shader,
         if (!input.key_manager.key_pressed(Key::k_l_shift)) {
             selection_start = -1;
         }
+        // ctrl jumping
+        if (input.key_manager[Key::k_l_ctrl]) {
+            // find next word
+            u32 new_pos = this->text.find_prev_word(this->text.cursor());
+            this->text.move_cursor_to(new_pos);
+        }
+
         retokenize();
     });
     register_key(Key::k_right, [&](InputManager &input) {
@@ -94,6 +101,12 @@ Editor::Editor(omega::gfx::Shader *shader,
         // stop selecting
         if (!input.key_manager.key_pressed(Key::k_l_shift)) {
             selection_start = -1;
+        }
+        // ctrl jumping
+        if (input.key_manager[Key::k_l_ctrl]) {
+            // find next word
+            u32 new_pos = this->text.find_next_word(this->text.cursor());
+            this->text.move_cursor_to(new_pos);
         }
         retokenize();
     });
