@@ -51,7 +51,11 @@ class Editor {
     f32 font_render_height = 25.0f;
 
     // searching
-    enum class Mode { EDITING = 0, SEARCHING } mode = Mode::EDITING;
+    enum class Mode {
+        EDITING = 0,
+        SEARCHING,
+        FILE_EXPLORER
+    } mode = Mode::EDITING;
     std::string search_text;
     FontRenderer search_renderer;
 };

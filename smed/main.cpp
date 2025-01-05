@@ -1,4 +1,6 @@
+#include <SDL3/SDL.h>
 #include <SDL3/SDL_keyboard.h>
+#include <SDL3_image/SDL_image.h>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_sdl3.h>
 
@@ -19,6 +21,11 @@ struct App : public core::App {
     App(const core::AppConfig &config) : core::App(config) {}
 
     void setup() override {
+        // set the icon
+        SDL_Surface *icon = IMG_Load("./res/icon.png");
+        SDL_SetWindowIcon(window->get_native_window(), icon);
+        SDL_DestroySurface(icon);
+
         gfx::enable_blending();
         cam = util::create_uptr<scene::OrthographicCamera>(
             0.0f, 1600.0f, 0.0f, 900.0f, -1.0f, 1.0f);
@@ -61,7 +68,6 @@ struct App : public core::App {
         gfx::set_clear_color(
             17.0f / 255.0f, 17.0f / 255.0f, 27.0f / 255.0f, 1.0f);
         gfx::clear_buffer(OMEGA_GL_COLOR_BUFFER_BIT);
-        cam->recalculate_view_matrix();
 
         auto &batch = globals->sprite_batch;
         auto &shape = globals->shape_renderer;
