@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "omega/core/error.hpp"
+#include "omega/util/log.hpp"
 #include "omega/util/types.hpp"
 
 class FileExplorer {
@@ -18,9 +20,29 @@ class FileExplorer {
         cwd = path;
         cwd_size = 0;
         content.clear();
+        // if we're going down a directory remove the ..
+        if (path.ends_with("..")) {
+            cwd = path.substr(0, path.length() - 2);
+            // find second to last index of /
+            i32 last_index = path.find_last_of("/");
+            if (last_index != std::string::npos) {
+                cwd = path.substr(0, last_index);
+                // find the actual second to last index of /
+                cwd = path.substr(0, cwd.string().find_last_of("/"));
+                OMEGA_DEBUG("{}", cwd);
+            } else {
+                OMEGA_ASSERT(false, "SHOULD NEVER OCCUR");
+            }
+        }
+
         for (const auto &entry : std::filesystem::directory_iterator(cwd)) {
             cwd_size++;
             content.push_back(entry.path());
+        }
+        // add go up if this is not project root
+        if (root != cwd) {
+            cwd_size++;
+            content.push_back(cwd / "..");
         }
     }
 
@@ -46,8 +68,8 @@ class FileExplorer {
     }
 
   private:
-    std::string root; // project root
-    std::string cwd;
+    std::filesystem::path root; // project root
+    std::filesystem::path cwd;
     std::string cw_file;
     u32 cwd_size = 0;
     std::vector<std::string> content;

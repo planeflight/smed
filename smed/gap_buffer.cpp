@@ -3,6 +3,18 @@
 #include <iostream>
 
 GapBuffer::GapBuffer(const char *text) {
+    open(text);
+}
+
+GapBuffer::~GapBuffer() {
+    delete[] text;
+}
+
+void GapBuffer::open(const char *text) {
+    if (this->text != nullptr) {
+        delete[] this->text;
+    }
+
     u32 text_length = strlen(text);
     this->text = new char[text_length + gap_length];
     total_length = text_length + gap_length;
@@ -12,10 +24,6 @@ GapBuffer::GapBuffer(const char *text) {
     strncpy(this->text + gap_length, text, text_length);
     gap_start = this->text;
     gap_end = gap_start + gap_length;
-}
-
-GapBuffer::~GapBuffer() {
-    delete[] text;
 }
 
 void GapBuffer::move_buffer(bool right) {

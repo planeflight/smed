@@ -62,9 +62,7 @@ class Editor {
 
     // directory/file management
     FileExplorer file_explorer;
-    std::string cwd = ".";
     u32 selected_idx = 0;
-    u32 dir_size = 0;
 };
 
 #endif // SMED_EDITOR_HPP

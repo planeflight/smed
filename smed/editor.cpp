@@ -68,6 +68,26 @@ Editor::Editor(omega::gfx::Shader *shader,
             }
             this->text.insert_char('\n');
             retokenize();
+        } else if (mode == Mode::FILE_EXPLORER) {
+            std::string content;
+            bool is_directory = file_explorer.open(
+                file_explorer.get_cwd_ls()[selected_idx], content);
+            if (!is_directory) {
+                // reset all the vars
+                vertical_pos = -1;
+                selection_start = 0;
+                mode = Mode::EDITING;
+                selected_idx = 0;
+                this->text.open(content.c_str());
+                retokenize();
+            }
+            // otherwise, this is a CHANGE DIRETORY OPERATION
+            else {
+                // update the selected index to stay the same or wrap to the new
+                // current directory size
+                selected_idx = omega::math::min(
+                    selected_idx, file_explorer.get_cwd_size() - 1);
+            }
         } else {
             i32 s = this->text.search(this->text.cursor(), search_text);
             // re-search if it's the 2nd time we're searching

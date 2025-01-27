@@ -2,14 +2,16 @@
 #define SMED_GAPBUFFER_HPP
 
 #include <cstring>
-#include <iostream>
 #include <omega/util/types.hpp>
+#include <string>
 #include <utility>
 
 class GapBuffer {
   public:
     GapBuffer(const char *text);
     ~GapBuffer();
+
+    void open(const char *text);
 
     void move_buffer(bool right);
     void insert_char(char c);
@@ -145,12 +147,12 @@ class GapBuffer {
     }
 
   private:
-    char *text;
-    char *end;
+    char *text = nullptr;
+    char *end = nullptr;
 
     u32 total_length;
-    char *gap_start;
-    char *gap_end;
+    char *gap_start = nullptr;
+    char *gap_end = nullptr;
     u32 gap_length = 8;
     const u32 add_gap_length = 8;
     // track where the gap characters are used
