@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "smed/buffer_renderer.hpp"
+#include "smed/files.hpp"
 #include "smed/font.hpp"
 #include "smed/font_renderer.hpp"
 #include "smed/gap_buffer.hpp"
@@ -58,6 +59,12 @@ class Editor {
     } mode = Mode::EDITING;
     std::string search_text;
     FontRenderer search_renderer;
+
+    // directory/file management
+    FileExplorer file_explorer;
+    std::string cwd = ".";
+    u32 selected_idx = 0;
+    u32 dir_size = 0;
 };
 
 #endif // SMED_EDITOR_HPP

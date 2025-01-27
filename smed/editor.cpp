@@ -1,6 +1,7 @@
 #include "editor.hpp"
 
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <omega/core/error.hpp>
 #include <omega/events/event.hpp>
@@ -16,6 +17,12 @@
 #include "smed/key_lag.hpp"
 #include "smed/lexer.hpp"
 
+bool ctrl_char(omega::events::KeyManager &keys, omega::events::Key k) {
+    using namespace omega::events;
+    return (keys.key_just_pressed(Key::k_l_ctrl) && keys[k]) ||
+           (keys.key_just_pressed(k) && keys[Key::k_l_ctrl]);
+}
+
 Editor::Editor(omega::gfx::Shader *shader,
                omega::gfx::Shader *shader_search,
                Font *font,
@@ -23,7 +30,8 @@ Editor::Editor(omega::gfx::Shader *shader,
     : text(text.c_str()),
       lexer(&this->text, font),
       font_renderer(shader),
-      search_renderer(shader_search) {
+      search_renderer(shader_search),
+      file_explorer(".") {
     using namespace omega::events;
     retokenize();
 
@@ -111,6 +119,13 @@ Editor::Editor(omega::gfx::Shader *shader,
         retokenize();
     });
     register_key(Key::k_up, [&](InputManager &input) {
+        if (mode == Mode::FILE_EXPLORER) {
+            selected_idx++;
+            if (selected_idx >= file_explorer.get_cwd_size()) {
+                selected_idx = file_explorer.get_cwd_size() - 1;
+            }
+            return;
+        }
         // calcute the current line start and the previous line start
         u32 line_start = this->text.find_line_start(this->text.cursor());
         u32 prev_line_start = line_start; // both are 0 when line_start = 0
@@ -145,6 +160,12 @@ Editor::Editor(omega::gfx::Shader *shader,
         retokenize();
     });
     register_key(Key::k_down, [&](InputManager &input) {
+        if (mode == Mode::FILE_EXPLORER) {
+            if (selected_idx >= 1) {
+                selected_idx--;
+            }
+            return;
+        }
         u32 idx = this->text.find_line_end(this->text.cursor());
         if (idx == text.length()) {
             this->text.move_cursor_to(idx);
@@ -173,17 +194,42 @@ Editor::Editor(omega::gfx::Shader *shader,
 
         retokenize();
     });
+    register_key(Key::k_tab, [&](InputManager &input) {
+        for (u32 i = 0; i < 4; ++i) {
+            this->text.insert_char(' ');
+        }
+        retokenize();
+    });
 }
 
 void Editor::render(Font *font,
                     omega::scene::OrthographicCamera &camera,
                     omega::gfx::SpriteBatch &batch,
                     omega::gfx::ShapeRenderer &shape) {
-    int i = 0;
     f32 height = font_render_height;
     f32 scale_factor = height / font->get_font_size();
 
     static omega::math::vec2 pos;
+    if (mode == Mode::FILE_EXPLORER) {
+        search_renderer.set_view_proj_matrix(camera.get_projection_matrix());
+        search_renderer.begin();
+        i32 i = 0;
+        for (auto path : file_explorer.get_cwd_ls()) {
+            f32 render_height = height;
+            omega::math::vec4 color{0.9f, 0.9f, 0.9f, 1.0f};
+            if (selected_idx == i) {
+                color = omega::util::color::white;
+                render_height *= 1.3f;
+            }
+            if (std::filesystem::is_directory(path)) {
+                path += "/";
+            }
+            search_renderer.render(
+                font, path, {20.0f, 100 + 30.0f * i++}, render_height, color);
+        }
+        search_renderer.end();
+        return;
+    }
 
     // some camera panning action! Recalculate the vp from the last frame pos
     omega::math::vec3 target_cam{0.0f};
@@ -277,7 +323,7 @@ void Editor::handle_input(omega::events::InputManager &input) {
     using namespace omega::events;
     auto &keys = input.key_manager;
 
-    if (keys[Key::k_l_ctrl] && keys[Key::k_s]) {
+    if (ctrl_char(keys, Key::k_s)) {
         save("./output.txt");
     }
 
@@ -290,7 +336,7 @@ void Editor::handle_input(omega::events::InputManager &input) {
         }
     }
     // INFO: update_keys that require a lag AFTER querying selection state to
-    // track the old cursor before selecting even started
+    // track the old cursor (selection_start) before selecting even started
     update_keys(input);
 
     // search functionality
@@ -303,13 +349,13 @@ void Editor::handle_input(omega::events::InputManager &input) {
     }
 
     // zooming
-    if (keys[Key::k_l_ctrl] && keys[Key::k_minus]) {
+    if (ctrl_char(keys, Key::k_minus)) {
         font_render_height -= 5;
         if (font_render_height < 10.0f) {
             font_render_height = 10.0f;
         }
     }
-    if (keys[Key::k_l_ctrl] && keys[Key::k_plus]) {
+    if (ctrl_char(keys, Key::k_plus)) {
         font_render_height += 5;
         if (font_render_height > 80.0f) {
             font_render_height = 80.0f;
@@ -317,13 +363,11 @@ void Editor::handle_input(omega::events::InputManager &input) {
     }
     // clipboard functionality
     // copy
-    if ((keys.key_just_pressed(Key::k_l_ctrl) && keys[Key::k_c]) ||
-        (keys.key_just_pressed(Key::k_c) && keys[Key::k_l_ctrl])) {
+    if (ctrl_char(keys, Key::k_c)) {
         copy_to_clipboard();
     }
     // cut
-    if ((keys.key_just_pressed(Key::k_l_ctrl) && keys[Key::k_x]) ||
-        (keys.key_just_pressed(Key::k_x) && keys[Key::k_l_ctrl])) {
+    if (ctrl_char(keys, Key::k_x)) {
         copy_to_clipboard();
         if (selection_start > -1) {
             backspace();
@@ -331,8 +375,7 @@ void Editor::handle_input(omega::events::InputManager &input) {
         }
     }
     // paste
-    if ((keys.key_just_pressed(Key::k_l_ctrl) && keys[Key::k_v]) ||
-        (keys.key_just_pressed(Key::k_v) && keys[Key::k_l_ctrl])) {
+    if (ctrl_char(keys, Key::k_v)) {
         char *paste = SDL_GetClipboardText();
         u32 len = strlen(paste);
         for (u32 i = 0; i < len; ++i) {
@@ -341,6 +384,10 @@ void Editor::handle_input(omega::events::InputManager &input) {
         }
         SDL_free(paste);
         retokenize();
+    }
+    // open file
+    if (ctrl_char(keys, Key::k_o)) {
+        mode = Mode::FILE_EXPLORER;
     }
 }
 
