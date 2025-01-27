@@ -8,6 +8,11 @@ The Smooth Lightweight editor that runs **SM**ooth like a **SM**oothie.
 - No Mouse -> Training you to finally switch to VIM
 - Copy/Paste
 - Syntax Highlighting in C/C++
+- Find/Replace
+- File Explorer
+- Highlighting
+
+![World Screenshot](res/Screenshot.png)
 
 Here are some interesting reference papers/articles:
 
