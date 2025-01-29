@@ -24,7 +24,7 @@ class Editor {
     Editor(omega::gfx::Shader *shader,
            omega::gfx::Shader *shader_search,
            Font *font,
-           const std::string &text);
+           std::string path);
 
     void render(Font *font,
                 omega::scene::OrthographicCamera &camera,
@@ -40,6 +40,7 @@ class Editor {
     void backspace();
     void copy_to_clipboard();
     void open(const std::string &file);
+    void new_file();
 
     GapBuffer text;
     Lexer lexer;

@@ -138,9 +138,7 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-    // TODO:
-    // 1. open file/directory from command line
-    // 2. undo/redo
+    // TODO: 1. undo/redo
     core::AppConfig config = core::AppConfig::from_config("./res/config.toml");
     App app(config, argv[1]);
     app.run();

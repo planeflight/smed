@@ -26,13 +26,18 @@ bool ctrl_char(omega::events::KeyManager &keys, omega::events::Key k) {
 Editor::Editor(omega::gfx::Shader *shader,
                omega::gfx::Shader *shader_search,
                Font *font,
-               const std::string &path)
+               std::string path)
     : text(""),
       lexer(&this->text, font),
       font_renderer(shader),
       search_renderer(shader_search),
       file_explorer(".") {
     using namespace omega::events;
+
+    // add a ./ if there isn't already one
+    if (path != "." && !path.starts_with("./")) {
+        path.insert(0, "./");
+    }
 
     // determine the root and set the file explorer root
     std::string root;
@@ -107,34 +112,7 @@ Editor::Editor(omega::gfx::Shader *shader,
                 retokenize();
             }
         } else if (mode == Mode::NEW_FILE) {
-            // WARN: Please just use a valid file/directory name, no funny
-            // business :)
-            if (new_file_text == "") {
-                return;
-            }
-            std::filesystem::path new_path =
-                file_explorer.get_cwd() / new_file_text;
-            // directory
-            if (new_file_text.ends_with("/")) {
-                std::filesystem::create_directory(new_path);
-                file_explorer.change_directory(new_path);
-                mode = Mode::FILE_EXPLORER;
-            } else {
-                if (!std::filesystem::exists(new_path)) {
-                    // set the default text to ""
-                    this->text.open("");
-                    save(new_path.string());
-                    std::string unused;
-                    file_explorer.open(new_path.string(), unused);
-                    retokenize();
-                } else {
-                    // just open the file otherwise
-                    open(new_path.string());
-                }
-                // reset the new file text
-                new_file_text.clear();
-                mode = Mode::EDITING;
-            }
+            new_file();
         }
     });
     // INFO: need to retokenize because the buffer moves, so pointers need to
@@ -549,5 +527,35 @@ void Editor::open(const std::string &file) {
         // current directory size
         selected_idx =
             omega::math::min(selected_idx, file_explorer.get_cwd_size() - 1);
+    }
+}
+
+void Editor::new_file() {
+    // WARN: Please just use a valid file/directory name, no funny
+    // business :)
+    if (new_file_text == "") {
+        return;
+    }
+    std::filesystem::path new_path = file_explorer.get_cwd() / new_file_text;
+    // directory
+    if (new_file_text.ends_with("/")) {
+        std::filesystem::create_directory(new_path);
+        file_explorer.change_directory(new_path);
+        mode = Mode::FILE_EXPLORER;
+    } else {
+        if (!std::filesystem::exists(new_path)) {
+            // set the default text to ""
+            this->text.open("");
+            save(new_path.string());
+            std::string unused;
+            file_explorer.open(new_path.string(), unused);
+            retokenize();
+        } else {
+            // just open the file otherwise
+            open(new_path.string());
+        }
+        // reset the new file text
+        new_file_text.clear();
+        mode = Mode::EDITING;
     }
 }
