@@ -3,12 +3,11 @@
 
 #include <filesystem>
 #include <fstream>
+#include <omega/core/error.hpp>
+#include <omega/util/log.hpp>
+#include <omega/util/types.hpp>
 #include <string>
 #include <vector>
-
-#include "omega/core/error.hpp"
-#include "omega/util/log.hpp"
-#include "omega/util/types.hpp"
 
 class FileExplorer {
   public:
@@ -16,7 +15,13 @@ class FileExplorer {
         change_directory(root);
     }
 
+    void set_root(const std::string &r) {
+        root = r;
+        change_directory(r);
+    }
+
     void change_directory(const std::string &path) {
+        // set the new cwd and reset
         cwd = path;
         cwd_size = 0;
         content.clear();
@@ -29,12 +34,12 @@ class FileExplorer {
                 cwd = path.substr(0, last_index);
                 // find the actual second to last index of /
                 cwd = path.substr(0, cwd.string().find_last_of("/"));
-                OMEGA_DEBUG("{}", cwd);
             } else {
                 OMEGA_ASSERT(false, "SHOULD NEVER OCCUR");
             }
         }
 
+        // save all the entries in this cwd
         for (const auto &entry : std::filesystem::directory_iterator(cwd)) {
             cwd_size++;
             content.push_back(entry.path());
@@ -65,6 +70,14 @@ class FileExplorer {
 
     u32 get_cwd_size() const {
         return cwd_size;
+    }
+
+    const std::string &get_current_file() const {
+        return cw_file;
+    }
+
+    const std::filesystem::path &get_cwd() const {
+        return cwd;
     }
 
   private:

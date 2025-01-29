@@ -26,14 +26,36 @@ bool ctrl_char(omega::events::KeyManager &keys, omega::events::Key k) {
 Editor::Editor(omega::gfx::Shader *shader,
                omega::gfx::Shader *shader_search,
                Font *font,
-               const std::string &text)
-    : text(text.c_str()),
+               const std::string &path)
+    : text(""),
       lexer(&this->text, font),
       font_renderer(shader),
       search_renderer(shader_search),
       file_explorer(".") {
     using namespace omega::events;
-    retokenize();
+
+    // determine the root and set the file explorer root
+    std::string root;
+    root = std::filesystem::path(path).parent_path() / "";
+    if (std::filesystem::is_directory(path)) {
+        root = path;
+    }
+    file_explorer.set_root(root);
+    std::string out; // unused
+    file_explorer.open(path, out);
+
+    // open the file
+    if (path != root) {
+        // refill the gap buffer and retokenize
+        std::ifstream ifs(path);
+        std::string text((std::istreambuf_iterator<char>(ifs)),
+                         (std::istreambuf_iterator<char>()));
+        this->text.open(text.c_str());
+        retokenize();
+    } else {
+        // otherwise set the mode to FILE_EXPLORER
+        mode = Mode::FILE_EXPLORER;
+    }
 
     // register all the keys that depend on a lag
     register_key(Key::k_backspace, [&](InputManager &input) {
@@ -45,8 +67,10 @@ Editor::Editor(omega::gfx::Shader *shader,
                 this->text.backspace_char();
             }
             retokenize();
-        } else {
+        } else if (mode == Mode::SEARCHING) {
             if (search_text.length() > 0) search_text.pop_back();
+        } else if (mode == Mode::NEW_FILE) {
+            if (new_file_text.length() > 0) new_file_text.pop_back();
         }
     });
 
@@ -69,26 +93,9 @@ Editor::Editor(omega::gfx::Shader *shader,
             this->text.insert_char('\n');
             retokenize();
         } else if (mode == Mode::FILE_EXPLORER) {
-            std::string content;
-            bool is_directory = file_explorer.open(
-                file_explorer.get_cwd_ls()[selected_idx], content);
-            if (!is_directory) {
-                // reset all the vars
-                vertical_pos = -1;
-                selection_start = 0;
-                mode = Mode::EDITING;
-                selected_idx = 0;
-                this->text.open(content.c_str());
-                retokenize();
-            }
-            // otherwise, this is a CHANGE DIRETORY OPERATION
-            else {
-                // update the selected index to stay the same or wrap to the new
-                // current directory size
-                selected_idx = omega::math::min(
-                    selected_idx, file_explorer.get_cwd_size() - 1);
-            }
-        } else {
+            open(file_explorer.get_cwd_ls()[selected_idx]);
+
+        } else if (mode == Mode::SEARCHING) {
             i32 s = this->text.search(this->text.cursor(), search_text);
             // re-search if it's the 2nd time we're searching
             if (s == this->text.cursor() &&
@@ -98,6 +105,35 @@ Editor::Editor(omega::gfx::Shader *shader,
             if (s != -1) {
                 this->text.move_cursor_to(s);
                 retokenize();
+            }
+        } else if (mode == Mode::NEW_FILE) {
+            // WARN: Please just use a valid file/directory name, no funny
+            // business :)
+            if (new_file_text == "") {
+                return;
+            }
+            std::filesystem::path new_path =
+                file_explorer.get_cwd() / new_file_text;
+            // directory
+            if (new_file_text.ends_with("/")) {
+                std::filesystem::create_directory(new_path);
+                file_explorer.change_directory(new_path);
+                mode = Mode::FILE_EXPLORER;
+            } else {
+                if (!std::filesystem::exists(new_path)) {
+                    // set the default text to ""
+                    this->text.open("");
+                    save(new_path.string());
+                    std::string unused;
+                    file_explorer.open(new_path.string(), unused);
+                    retokenize();
+                } else {
+                    // just open the file otherwise
+                    open(new_path.string());
+                }
+                // reset the new file text
+                new_file_text.clear();
+                mode = Mode::EDITING;
             }
         }
     });
@@ -230,7 +266,7 @@ void Editor::render(Font *font,
     f32 scale_factor = height / font->get_font_size();
 
     static omega::math::vec2 pos;
-    if (mode == Mode::FILE_EXPLORER) {
+    if (mode == Mode::FILE_EXPLORER || mode == Mode::NEW_FILE) {
         search_renderer.set_view_proj_matrix(camera.get_projection_matrix());
         search_renderer.begin();
         i32 i = 0;
@@ -248,6 +284,30 @@ void Editor::render(Font *font,
                 font, path, {20.0f, 100 + 30.0f * i++}, render_height, color);
         }
         search_renderer.end();
+        if (mode == Mode::NEW_FILE) {
+            auto corner = omega::math::vec2{camera.get_width() - 300.0f,
+                                            camera.get_height() - 40.0f};
+            shape.begin();
+            shape.set_view_projection_matrix(camera.get_projection_matrix());
+            shape.color = omega::util::color::black;
+            shape.rect({corner.x, corner.y, 300.0f, 60.0f});
+            shape.end();
+
+            search_renderer.set_view_proj_matrix(
+                camera.get_projection_matrix());
+            search_renderer.begin();
+            search_renderer.render(font,
+                                   "New File: ",
+                                   {corner.x - 75.0f, corner.y + 10.0f},
+                                   15.0f,
+                                   {0.5f, 0.5f, 0.5f, 1.0f});
+            search_renderer.render(font,
+                                   new_file_text,
+                                   {corner.x + 10.0f, corner.y + 10.0f},
+                                   20.0f,
+                                   omega::util::color::white);
+            search_renderer.end();
+        }
         return;
     }
 
@@ -286,6 +346,14 @@ void Editor::render(Font *font,
         shape, font, text, selection_start, {0, 0}, height);
     shape.end();
 
+    // render the file name
+    search_renderer.set_view_proj_matrix(camera.get_projection_matrix());
+    search_renderer.begin();
+    search_renderer.render(
+        font, file_explorer.get_current_file(), {10.0f, 10.0f}, 20.0f);
+    search_renderer.end();
+
+    // render find/replace box
     if (mode == Mode::SEARCHING) {
         auto corner = omega::math::vec2{camera.get_width() - 300.0f,
                                         camera.get_height() - 40.0f};
@@ -327,6 +395,8 @@ void Editor::handle_text(omega::events::InputManager &input, char c) {
     auto &keys = input.key_manager;
     if (mode == Mode::SEARCHING) {
         search_text.push_back(c);
+    } else if (mode == Mode::NEW_FILE) {
+        new_file_text.push_back(c);
     } else {
         // lock the text when ctrl is pressed
         if (!keys[omega::events::Key::k_l_ctrl]) {
@@ -343,8 +413,11 @@ void Editor::handle_input(omega::events::InputManager &input) {
     using namespace omega::events;
     auto &keys = input.key_manager;
 
+    // save only in editing mode
     if (ctrl_char(keys, Key::k_s)) {
-        save("./output.txt");
+        if (mode == Mode::EDITING) {
+            save(file_explorer.get_current_file());
+        }
     }
 
     if (keys[Key::k_l_shift]) {
@@ -409,6 +482,12 @@ void Editor::handle_input(omega::events::InputManager &input) {
     if (ctrl_char(keys, Key::k_o)) {
         mode = Mode::FILE_EXPLORER;
     }
+    // new file
+    if (ctrl_char(keys, Key::k_n)) {
+        if (mode == Mode::FILE_EXPLORER) {
+            mode = Mode::NEW_FILE;
+        }
+    }
 }
 
 void Editor::retokenize() {
@@ -449,5 +528,26 @@ void Editor::copy_to_clipboard() {
                 text.substr(selection_start, text.cursor() - selection_start)
                     .c_str());
         }
+    }
+}
+
+void Editor::open(const std::string &file) {
+    std::string content;
+    bool is_directory = file_explorer.open(file, content);
+    if (!is_directory) {
+        // reset all the vars
+        vertical_pos = -1;
+        selection_start = 0;
+        mode = Mode::EDITING;
+        selected_idx = 0;
+        this->text.open(content.c_str());
+        retokenize();
+    }
+    // otherwise, this is a CHANGE DIRETORY OPERATION
+    else {
+        // update the selected index to stay the same or wrap to the new
+        // current directory size
+        selected_idx =
+            omega::math::min(selected_idx, file_explorer.get_cwd_size() - 1);
     }
 }

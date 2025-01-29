@@ -39,6 +39,7 @@ class Editor {
     void retokenize();
     void backspace();
     void copy_to_clipboard();
+    void open(const std::string &file);
 
     GapBuffer text;
     Lexer lexer;
@@ -55,7 +56,8 @@ class Editor {
     enum class Mode {
         EDITING = 0,
         SEARCHING,
-        FILE_EXPLORER
+        FILE_EXPLORER,
+        NEW_FILE
     } mode = Mode::EDITING;
     std::string search_text;
     FontRenderer search_renderer;
@@ -63,6 +65,7 @@ class Editor {
     // directory/file management
     FileExplorer file_explorer;
     u32 selected_idx = 0;
+    std::string new_file_text;
 };
 
 #endif // SMED_EDITOR_HPP
