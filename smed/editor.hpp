@@ -48,7 +48,7 @@ class Editor {
     i32 vertical_pos = -1; // represents the initial up/down cursor column, -1
                            // when none has been initiated
 
-    BufferRenderer font_renderer;
+    BufferRenderer buffer_renderer;
 
     i32 selection_start = -1; // -1 represents no selection
     f32 font_render_height = 25.0f;
@@ -61,7 +61,7 @@ class Editor {
         NEW_FILE
     } mode = Mode::EDITING;
     std::string search_text;
-    FontRenderer search_renderer;
+    FontRenderer font_renderer;
 
     // directory/file management
     FileExplorer file_explorer;

@@ -29,8 +29,8 @@ Editor::Editor(omega::gfx::Shader *shader,
                std::string path)
     : text(""),
       lexer(&this->text, font),
-      font_renderer(shader),
-      search_renderer(shader_search),
+      buffer_renderer(shader),
+      font_renderer(shader_search),
       file_explorer(".") {
     using namespace omega::events;
 
@@ -245,8 +245,8 @@ void Editor::render(Font *font,
 
     static omega::math::vec2 pos;
     if (mode == Mode::FILE_EXPLORER || mode == Mode::NEW_FILE) {
-        search_renderer.set_view_proj_matrix(camera.get_projection_matrix());
-        search_renderer.begin();
+        font_renderer.set_view_proj_matrix(camera.get_projection_matrix());
+        font_renderer.begin();
         i32 i = 0;
         for (auto path : file_explorer.get_cwd_ls()) {
             f32 render_height = height;
@@ -258,10 +258,10 @@ void Editor::render(Font *font,
             if (std::filesystem::is_directory(path)) {
                 path += "/";
             }
-            search_renderer.render(
+            font_renderer.render(
                 font, path, {20.0f, 100 + 30.0f * i++}, render_height, color);
         }
-        search_renderer.end();
+        font_renderer.end();
         if (mode == Mode::NEW_FILE) {
             auto corner = omega::math::vec2{camera.get_width() - 300.0f,
                                             camera.get_height() - 40.0f};
@@ -271,20 +271,19 @@ void Editor::render(Font *font,
             shape.rect({corner.x, corner.y, 300.0f, 60.0f});
             shape.end();
 
-            search_renderer.set_view_proj_matrix(
-                camera.get_projection_matrix());
-            search_renderer.begin();
-            search_renderer.render(font,
-                                   "New File: ",
-                                   {corner.x - 75.0f, corner.y + 10.0f},
-                                   15.0f,
-                                   {0.5f, 0.5f, 0.5f, 1.0f});
-            search_renderer.render(font,
-                                   new_file_text,
-                                   {corner.x + 10.0f, corner.y + 10.0f},
-                                   20.0f,
-                                   omega::util::color::white);
-            search_renderer.end();
+            font_renderer.set_view_proj_matrix(camera.get_projection_matrix());
+            font_renderer.begin();
+            font_renderer.render(font,
+                                 "New File: ",
+                                 {corner.x - 75.0f, corner.y + 10.0f},
+                                 15.0f,
+                                 {0.5f, 0.5f, 0.5f, 1.0f});
+            font_renderer.render(font,
+                                 new_file_text,
+                                 {corner.x + 10.0f, corner.y + 10.0f},
+                                 20.0f,
+                                 omega::util::color::white);
+            font_renderer.end();
         }
         return;
     }
@@ -296,21 +295,21 @@ void Editor::render(Font *font,
     camera.position += (target_cam - camera.position) * 0.025f;
     camera.recalculate_view_matrix();
 
-    font_renderer.begin();
-    pos = font_renderer.render(font,
-                               camera.get_view_projection_matrix(),
-                               text,
-                               tokens,
-                               {0, 0},
-                               {0, 0},
-                               height,
-                               omega::util::color::white);
+    buffer_renderer.begin();
+    pos = buffer_renderer.render(font,
+                                 camera.get_view_projection_matrix(),
+                                 text,
+                                 tokens,
+                                 {0, 0},
+                                 {0, 0},
+                                 height,
+                                 omega::util::color::white);
     // calculate cursor pos
     omega::math::vec2 cursor_pos_bottom = {pos.x, pos.y};
     omega::math::vec2 cursor_pos_top = {pos.x, pos.y + height * 0.8};
 
     // render the text batch finally
-    font_renderer.end(camera.get_view_projection_matrix());
+    buffer_renderer.end(camera.get_view_projection_matrix());
 
     // render cursor
     shape.begin();
@@ -320,16 +319,16 @@ void Editor::render(Font *font,
 
     // draw the selected text
     shape.color.a = 0.5f;
-    font_renderer.render_selected(
+    buffer_renderer.render_selected(
         shape, font, text, selection_start, {0, 0}, height);
     shape.end();
 
     // render the file name
-    search_renderer.set_view_proj_matrix(camera.get_projection_matrix());
-    search_renderer.begin();
-    search_renderer.render(
+    font_renderer.set_view_proj_matrix(camera.get_projection_matrix());
+    font_renderer.begin();
+    font_renderer.render(
         font, file_explorer.get_current_file(), {10.0f, 10.0f}, 20.0f);
-    search_renderer.end();
+    font_renderer.end();
 
     // render find/replace box
     if (mode == Mode::SEARCHING) {
@@ -341,19 +340,19 @@ void Editor::render(Font *font,
         shape.rect({corner.x, corner.y, 300.0f, 60.0f});
         shape.end();
 
-        search_renderer.set_view_proj_matrix(camera.get_projection_matrix());
-        search_renderer.begin();
-        search_renderer.render(font,
-                               "Search: ",
-                               {corner.x - 75.0f, corner.y + 10.0f},
-                               15.0f,
-                               {0.5f, 0.5f, 0.5f, 1.0f});
-        search_renderer.render(font,
-                               search_text,
-                               {corner.x + 10.0f, corner.y + 10.0f},
-                               20.0f,
-                               omega::util::color::white);
-        search_renderer.end();
+        font_renderer.set_view_proj_matrix(camera.get_projection_matrix());
+        font_renderer.begin();
+        font_renderer.render(font,
+                             "Search: ",
+                             {corner.x - 75.0f, corner.y + 10.0f},
+                             15.0f,
+                             {0.5f, 0.5f, 0.5f, 1.0f});
+        font_renderer.render(font,
+                             search_text,
+                             {corner.x + 10.0f, corner.y + 10.0f},
+                             20.0f,
+                             omega::util::color::white);
+        font_renderer.end();
     }
 }
 
