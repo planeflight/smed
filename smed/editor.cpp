@@ -129,8 +129,11 @@ Editor::Editor(omega::gfx::Shader *shader,
         // ctrl jumping
         if (input.key_manager[Key::k_l_ctrl]) {
             // find next word
-            u32 new_pos = this->text.find_prev_word(this->text.cursor());
-            this->text.move_cursor_to(new_pos);
+            Token *res = find_prev_token(this->text.cursor());
+            if (res != nullptr) {
+                u32 new_pos = this->text.get_index_from_pointer(res->text);
+                this->text.move_cursor_to(new_pos);
+            }
         }
 
         retokenize();
@@ -147,8 +150,11 @@ Editor::Editor(omega::gfx::Shader *shader,
         // ctrl jumping
         if (input.key_manager[Key::k_l_ctrl]) {
             // find next word
-            u32 new_pos = this->text.find_next_word(this->text.cursor());
-            this->text.move_cursor_to(new_pos);
+            Token *res = find_next_token(this->text.cursor());
+            if (res != nullptr) {
+                u32 new_pos = this->text.get_index_from_pointer(res->text);
+                this->text.move_cursor_to(new_pos);
+            }
         }
         retokenize();
     });
@@ -557,4 +563,50 @@ void Editor::new_file() {
         new_file_text.clear();
         mode = Mode::EDITING;
     }
+}
+
+Token *Editor::find_prev_token(u32 i) {
+    const char *c = &text.get(i);
+    // handle edge case where c == tokens[0].text
+    if (c == tokens[0].text) {
+        return &tokens[0];
+    }
+    // perform a binary search
+    i32 start = 0, end = tokens.size() - 1;
+    Token *res = nullptr;
+    while (start <= end) {
+        i32 mid = (start + end) / 2;
+        Token &token = tokens[mid];
+
+        if (token.text < c) {
+            res = &token;
+            start = mid + 1;
+        } else {
+            end = mid - 1;
+        }
+    }
+    return res;
+}
+
+Token *Editor::find_next_token(u32 i) {
+    const char *c = &text.get(i);
+    // check edge case where c == tokens.back().text + token.len
+    if (c == text.tail()) {
+        return &tokens.back();
+    }
+    // perform a binary search
+    i32 start = 0, end = tokens.size() - 1;
+    Token *res = nullptr;
+    while (start <= end) {
+        i32 mid = (start + end) / 2;
+        Token &token = tokens[mid];
+
+        if (token.text + token.len > c) {
+            res = &token;
+            end = mid - 1;
+        } else {
+            start = mid + 1;
+        }
+    }
+    return res;
 }

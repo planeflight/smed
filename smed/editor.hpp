@@ -42,6 +42,9 @@ class Editor {
     void open(const std::string &file);
     void new_file();
 
+    Token *find_prev_token(u32 i);
+    Token *find_next_token(u32 i);
+
     GapBuffer text;
     Lexer lexer;
     std::vector<Token> tokens;
