@@ -119,9 +119,6 @@ Editor::Editor(omega::gfx::Shader *shader,
     // change
     register_key(Key::k_left, [&](InputManager &input) {
         vertical_pos = -1;
-        if (this->text.cursor() > 0) {
-            this->text.move_buffer(false);
-        }
         // stop selecting
         if (!input.key_manager.key_pressed(Key::k_l_shift)) {
             selection_start = -1;
@@ -129,32 +126,31 @@ Editor::Editor(omega::gfx::Shader *shader,
         // ctrl jumping
         if (input.key_manager[Key::k_l_ctrl]) {
             // find next word
-            Token *res = find_prev_token(this->text.cursor());
-            if (res != nullptr) {
-                u32 new_pos = this->text.get_index_from_pointer(res->text);
-                this->text.move_cursor_to(new_pos);
+            i32 res = find_prev_token(this->text.cursor());
+            if (res != -1) {
+                this->text.move_cursor_to(res);
             }
+        } else if (this->text.cursor() > 0) {
+            this->text.move_buffer(false);
         }
 
         retokenize();
     });
     register_key(Key::k_right, [&](InputManager &input) {
         vertical_pos = -1;
-        if (this->text.buff2() < this->text.tail()) {
-            this->text.move_buffer(true);
-        }
+
         // stop selecting
         if (!input.key_manager.key_pressed(Key::k_l_shift)) {
             selection_start = -1;
         }
         // ctrl jumping
         if (input.key_manager[Key::k_l_ctrl]) {
-            // find next word
-            Token *res = find_next_token(this->text.cursor());
-            if (res != nullptr) {
-                u32 new_pos = this->text.get_index_from_pointer(res->text);
-                this->text.move_cursor_to(new_pos);
+            i32 res = find_next_token(this->text.cursor());
+            if (res != -1) {
+                this->text.move_cursor_to(res);
             }
+        } else if (this->text.buff2() < this->text.tail()) {
+            this->text.move_buffer(true);
         }
         retokenize();
     });
@@ -565,21 +561,22 @@ void Editor::new_file() {
     }
 }
 
-Token *Editor::find_prev_token(u32 i) {
-    const char *c = &text.get(i);
+i32 Editor::find_prev_token(u32 i) {
     // handle edge case where c == tokens[0].text
-    if (c == tokens[0].text) {
-        return &tokens[0];
+    if (i <= text.get_index_from_pointer(tokens[0].text) + tokens[0].len) {
+        return text.get_index_from_pointer(tokens[0].text);
     }
     // perform a binary search
     i32 start = 0, end = tokens.size() - 1;
-    Token *res = nullptr;
+    i32 res = -1;
     while (start <= end) {
         i32 mid = (start + end) / 2;
         Token &token = tokens[mid];
 
-        if (token.text < c) {
-            res = &token;
+        auto token_idx = text.get_index_from_pointer(token.text);
+        // if (&text.get(token_idx + token.len) < c) {
+        if (i > token_idx + token.len) {
+            res = token_idx + token.len;
             start = mid + 1;
         } else {
             end = mid - 1;
@@ -588,21 +585,22 @@ Token *Editor::find_prev_token(u32 i) {
     return res;
 }
 
-Token *Editor::find_next_token(u32 i) {
-    const char *c = &text.get(i);
+i32 Editor::find_next_token(u32 i) {
     // check edge case where c == tokens.back().text + token.len
-    if (c == text.tail()) {
-        return &tokens.back();
+    if (i >= text.get_index_from_pointer(tokens.back().text)) {
+        return text.get_index_from_pointer(tokens.back().text) +
+               tokens.back().len;
     }
     // perform a binary search
     i32 start = 0, end = tokens.size() - 1;
-    Token *res = nullptr;
+    i32 res = -1;
     while (start <= end) {
         i32 mid = (start + end) / 2;
         Token &token = tokens[mid];
 
-        if (token.text + token.len > c) {
-            res = &token;
+        auto token_idx = text.get_index_from_pointer(token.text);
+        if (token_idx > i) {
+            res = token_idx;
             end = mid - 1;
         } else {
             start = mid + 1;

@@ -12,6 +12,23 @@ The Smooth Lightweight editor that runs **SM**ooth like a **SM**oothie.
 - File Explorer
 - Highlighting
 
+## Usage
+
+- There are by default 3 modes, editing, searching, and file exploring
+- Type any key as you would in a text editor
+
+| Key                  | Effect                                   |
+| -------------------- | ---------------------------------------- |
+| Ctrl-s               | Save to current file                     |
+| Ctrl-left/Ctrl-right | Jump to prev/next token                  |
+| Ctrl-f               | Find                                     |
+| Ctrl-q               | Quit                                     |
+| Ctrl-o               | Open file explorer                       |
+| Ctrl-n               | Create a new file in file exploring mode |
+| esc                  | Exits from searching mode                |
+| Ctrl-c/Ctrl-v/Ctrl-x | Classic copy, paste, cut                 |
+| n                    | Next result in searching mode            |
+
 ![World Screenshot](res/Screenshot.png)
 
 Here are some interesting reference papers/articles:
