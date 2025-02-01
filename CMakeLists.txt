@@ -12,22 +12,22 @@ set (CMAKE_CXX_STANDARD 20)
 include_directories(".")
 include_directories("./lib/")
 include_directories("./lib/freetype/include/")
-include_directories("../games/omega/")
-include_directories("../games/omega/lib/SDL3/include/")
-include_directories("../games/omega/lib/SDL_image/include/")
-include_directories("../games/omega/lib/SDL_mixer/include/")
-include_directories("../games/omega/lib/glad/include/")
-include_directories("../games/omega/lib/box2d/include/")
+include_directories("./lib/omega/")
+include_directories("./lib/omega/lib/SDL3/include/")
+include_directories("./lib/omega/lib/SDL_image/include/")
+include_directories("./lib/omega/lib/SDL_mixer/include/")
+include_directories("./lib/omega/lib/glad/include/")
+include_directories("./lib/omega/lib/box2d/include/")
 
 add_executable(${PROJECT_NAME} ${SRC})
 set(CMAKE_BUILD_TYPE Debug)
 
 target_include_directories(${PROJECT_NAME}
-    PUBLIC ../games/omega/
-    PUBLIC ../games/omega/lib/
-    PUBLIC ../games/omega/lib/SDL/include/
-    PUBLIC ../games/omega/lib/SDL_image/include/
-    PUBLIC ../games/omega/lib/SDL_mixer/include/
+    PUBLIC ./lib/omega/
+    PUBLIC ./lib/omega/lib/
+    PUBLIC ./lib/omega/lib/SDL/include/
+    PUBLIC ./lib/omega/lib/SDL_image/include/
+    PUBLIC ./lib/omega/lib/SDL_mixer/include/
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -46,16 +46,17 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 target_link_directories(${PROJECT_NAME}
-    PUBLIC ../games/omega/build/
-    PUBLIC ../games/omega/build/lib/SDL/
-    PUBLIC ../games/omega/build/lib/SDL_image/
-    PUBLIC ../games/omega/build/lib/SDL_mixer/
-    PUBLIC ../games/omega/build/lib/imgui/
-    PUBLIC ../games/omega/build/lib/glad/
-    PUBLIC ../games/omega/build/lib/stb/
-    PUBLIC ../games/omega/build/lib/box2d/bin/
-    PUBLIC ../games/omega/build/lib/libtmx-parser/
-    PUBLIC ../games/omega/build/lib/tomlplusplus/
-    PUBLIC ../games/omega/build/lib/json/
-    PUBLIC ../games/omega/build/lib/entt/
+    PUBLIC ./lib/omega/build/
+    PUBLIC ./lib/omega/build/lib/SDL/
+    PUBLIC ./lib/omega/build/lib/SDL_image/
+    PUBLIC ./lib/omega/build/lib/SDL_mixer/
+    PUBLIC ./lib/omega/build/lib/imgui/
+    PUBLIC ./lib/omega/build/lib/glad/
+    PUBLIC ./lib/omega/build/lib/stb/
+    PUBLIC ./lib/omega/build/lib/box2d/bin/
+    PUBLIC ./lib/omega/build/lib/libtmx-parser/
+    PUBLIC ./lib/omega/build/lib/tomlplusplus/
+    PUBLIC ./lib/omega/build/lib/json/
+    PUBLIC ./lib/omega/build/lib/entt/
 )
+
