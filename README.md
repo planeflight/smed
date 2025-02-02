@@ -28,6 +28,8 @@ The Smooth Lightweight editor that runs **SM**ooth like a **SM**oothie.
 | esc                  | Exits from searching mode                |
 | Ctrl-c/Ctrl-v/Ctrl-x | Classic copy, paste, cut                 |
 | n                    | Next result in searching mode            |
+| Ctrl-+               | Zoom in                                  |
+| Ctrl--               | Zoom out                                 |
 
 ![World Screenshot](res/Screenshot.png)
 
