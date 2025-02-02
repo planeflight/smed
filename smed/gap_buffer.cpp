@@ -43,7 +43,7 @@ void GapBuffer::insert_char(char c) {
         gap_start[gap_idx++] = c;
     } else {
         // TODO: use amortized constant time with 2^N
-        gap_length = add_gap_length;
+        gap_length = length();
         char *new_text = new char[total_length + gap_length];
         // copy everything from the buff1, gap buffer into the new buff1
         u32 buff1_size = gap_end - text;

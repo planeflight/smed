@@ -12,6 +12,21 @@ The Smooth Lightweight editor that runs **SM**ooth like a **SM**oothie.
 - File Explorer
 - Highlighting
 
+## Building:
+
+- Clone the repo and its subrepos.
+- Build omega
+  - Run the following:
+
+```bash
+  cd lib/omega/
+  ./configure.sh
+  ./build.sh
+```
+
+- In the root project, run `./build.sh`
+- Open any file/directory using `./build/smed <file/directory name>`
+
 ## Usage
 
 - There are by default 3 modes, editing, searching, and file exploring
@@ -56,3 +71,7 @@ Here are some interesting reference papers/articles:
   - my own implementation heavily used his as a foundation
 
 - [The definitive compiler "Bible": The Dragon Book](https://en.wikipedia.org/wiki/Compilers:_Principles,_Techniques,_and_Tools)
+
+```
+
+```
